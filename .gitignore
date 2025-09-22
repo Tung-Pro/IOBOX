@@ -1,0 +1,40 @@
+# Node modules
+/node_modules
+
+# Build output
+/dist
+/build
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Env files (chứa key/token)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Dependency lock files (nếu bạn không muốn commit)
+/package-lock.json
+/yarn.lock
+/pnpm-lock.yaml
+
+# IDE settings
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Coverage reports
+/coverage
+
+# Temporary
+*.tmp
