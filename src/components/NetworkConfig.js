@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Network, RefreshCw, Save, Wifi } from 'lucide-react';
+import { Card, Button, Row, Col, Typography, Form, Input, Switch, Alert, Spin, Tag } from 'antd';
+import { 
+  GlobalOutlined, 
+  ReloadOutlined, 
+  SaveOutlined, 
+  WifiOutlined,
+  CheckCircleOutlined,
+  InfoCircleOutlined
+} from '@ant-design/icons';
 import ioboxAPI from '../services/ioboxApi';
 
 const NetworkConfig = () => {
@@ -73,162 +81,206 @@ const NetworkConfig = () => {
     }
   };
 
-  const formatConfigDisplay = (config, title) => (
-    <div style={{ 
-      background: '#f8f9fa', 
-      padding: '15px', 
-      borderRadius: '6px', 
-      border: '1px solid #e9ecef',
-      marginBottom: '15px'
-    }}>
-      <h4 style={{ marginBottom: '10px', color: '#2c3e50' }}>{title}</h4>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
-        <div>
-          <strong>IP Address:</strong><br />
-          <span style={{ fontFamily: 'monospace' }}>{config.ip}</span>
-        </div>
-        <div>
-          <strong>Subnet Mask:</strong><br />
-          <span style={{ fontFamily: 'monospace' }}>{config.subnet}</span>
-        </div>
-        <div>
-          <strong>Gateway:</strong><br />
-          <span style={{ fontFamily: 'monospace' }}>{config.gateway}</span>
-        </div>
-        {config.isStatic !== undefined && (
+  const formatConfigDisplay = (config, title, icon) => (
+    <Card 
+      title={
+        <Typography.Title level={4} style={{ margin: 0, display: 'flex', alignItems: 'center' }}>
+          {icon}
+          <span style={{ marginLeft: '8px' }}>{title}</span>
+        </Typography.Title>
+      }
+      size="small"
+      style={{ height: '100%' }}
+    >
+      <Row gutter={[16, 16]}>
+        <Col span={12}>
           <div>
-            <strong>Mode:</strong><br />
-            <span style={{ 
-              color: config.isStatic ? '#27ae60' : '#f39c12',
-              fontWeight: '500'
+            <Typography.Text type="secondary">IP Address</Typography.Text>
+            <div style={{ 
+              fontFamily: 'monospace', 
+              fontSize: '16px', 
+              fontWeight: '500',
+              marginTop: '4px'
             }}>
-              {config.isStatic ? 'Static IP' : 'DHCP'}
-            </span>
+              {config.ip}
+            </div>
           </div>
-        )}
-      </div>
-    </div>
+        </Col>
+        <Col span={12}>
+          <div>
+            <Typography.Text type="secondary">Subnet Mask</Typography.Text>
+            <div style={{ 
+              fontFamily: 'monospace', 
+              fontSize: '16px', 
+              fontWeight: '500',
+              marginTop: '4px'
+            }}>
+              {config.subnet}
+            </div>
+          </div>
+        </Col>
+        <Col span={12}>
+          <div>
+            <Typography.Text type="secondary">Gateway</Typography.Text>
+            <div style={{ 
+              fontFamily: 'monospace', 
+              fontSize: '16px', 
+              fontWeight: '500',
+              marginTop: '4px'
+            }}>
+              {config.gateway}
+            </div>
+          </div>
+        </Col>
+        <Col span={12}>
+          <div>
+            <Typography.Text type="secondary">Mode</Typography.Text>
+            <div style={{ marginTop: '4px' }}>
+              <Tag 
+                color={config.isStatic !== undefined ? (config.isStatic ? 'green' : 'orange') : 'blue'}
+                style={{ fontSize: '12px' }}
+              >
+                {config.isStatic !== undefined ? (config.isStatic ? 'Static IP' : 'DHCP') : 'Static Config'}
+              </Tag>
+            </div>
+          </div>
+        </Col>
+      </Row>
+    </Card>
   );
 
   return (
-    <div className="card">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h2>
-          <Network size={20} style={{ marginRight: '10px', verticalAlign: 'middle' }} />
+    <Card 
+      title={
+        <Typography.Title level={3} style={{ margin: 0, display: 'flex', alignItems: 'center' }}>
+          <GlobalOutlined style={{ marginRight: '8px', color: '#1890ff' }} />
           Network Configuration
-        </h2>
-        <button className="btn" onClick={loadNetworkConfig} disabled={loading}>
-          <RefreshCw size={16} className={loading ? 'spinning' : ''} style={{ marginRight: '8px' }} />
-          {loading ? 'Loading...' : 'Refresh'}
-        </button>
-      </div>
-
+        </Typography.Title>
+      }
+      extra={
+        <Button 
+          type="primary" 
+          icon={<ReloadOutlined spin={loading} />}
+          onClick={loadNetworkConfig} 
+          loading={loading}
+        >
+          Refresh
+        </Button>
+      }
+    >
       {message && (
-        <div className={`alert ${message.type === 'success' ? 'alert-success' : 'alert-error'}`}>
-          {message.text}
-        </div>
+        <Alert
+          message={message.type === 'success' ? 'Success' : 'Error'}
+          description={message.text}
+          type={message.type === 'success' ? 'success' : 'error'}
+          showIcon
+          style={{ marginBottom: '16px' }}
+        />
       )}
 
       {loading ? (
-        <div className="loading">Loading network configuration...</div>
+        <div style={{ textAlign: 'center', padding: '40px' }}>
+          <Spin size="large" />
+          <div style={{ marginTop: '16px' }}>Loading network configuration...</div>
+        </div>
       ) : (
         <>
-          {/* Current Configuration */}
-          {currentConfig && formatConfigDisplay(currentConfig, 'Current Network Configuration')}
-          
-          {/* Static Configuration */}
-          {staticConfig && formatConfigDisplay(staticConfig, 'Saved Static Configuration')}
+          {/* Network Information Display - Side by Side */}
+          <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
+            <Col xs={24} lg={12}>
+              {currentConfig && formatConfigDisplay(
+                currentConfig, 
+                'Current Network', 
+                <CheckCircleOutlined style={{ color: '#52c41a' }} />
+              )}
+            </Col>
+            <Col xs={24} lg={12}>
+              {staticConfig && formatConfigDisplay(
+                staticConfig, 
+                'Saved Static Config', 
+                <InfoCircleOutlined style={{ color: '#1890ff' }} />
+              )}
+            </Col>
+          </Row>
 
           {/* Configuration Form */}
-          <div style={{ 
-            background: '#f8f9fa', 
-            padding: '20px', 
-            borderRadius: '6px', 
-            border: '1px solid #e9ecef' 
-          }}>
-            <h3 style={{ marginBottom: '15px', color: '#2c3e50' }}>Configure Static IP</h3>
-            
-            <div className="form-group">
-              <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
-                <input
-                  type="checkbox"
-                  name="enableStaticIp"
+          <Card 
+            title={
+              <Typography.Title level={4} style={{ margin: 0, display: 'flex', alignItems: 'center' }}>
+                <WifiOutlined style={{ marginRight: '8px', color: '#1890ff' }} />
+                Configure Static IP
+              </Typography.Title>
+            }
+            size="small"
+          >
+            <Form layout="vertical">
+              <Form.Item>
+                <Switch
                   checked={formData.enableStaticIp}
-                  onChange={handleInputChange}
-                  style={{ marginRight: '8px' }}
+                  onChange={(checked) => setFormData(prev => ({ ...prev, enableStaticIp: checked }))}
+                  checkedChildren="Static IP"
+                  unCheckedChildren="DHCP"
                 />
-                <Wifi size={16} style={{ marginRight: '8px' }} />
-                Enable Static IP Configuration
-              </label>
-            </div>
+              </Form.Item>
 
-            {formData.enableStaticIp && (
-              <>
-                <div className="form-group">
-                  <label>IP Address</label>
-                  <input
-                    type="text"
-                    name="ip"
-                    value={formData.ip}
-                    onChange={handleInputChange}
-                    className="form-control"
-                    placeholder="192.168.1.100"
-                    style={{ fontFamily: 'monospace' }}
-                  />
-                </div>
+              {formData.enableStaticIp && (
+                <>
+                  <Form.Item label="IP Address">
+                    <Input
+                      name="ip"
+                      value={formData.ip}
+                      onChange={handleInputChange}
+                      placeholder="192.168.1.100"
+                      style={{ fontFamily: 'monospace' }}
+                    />
+                  </Form.Item>
 
-                <div className="form-group">
-                  <label>Subnet Mask</label>
-                  <input
-                    type="text"
-                    name="subnet"
-                    value={formData.subnet}
-                    onChange={handleInputChange}
-                    className="form-control"
-                    placeholder="255.255.255.0"
-                    style={{ fontFamily: 'monospace' }}
-                  />
-                </div>
+                  <Form.Item label="Subnet Mask">
+                    <Input
+                      name="subnet"
+                      value={formData.subnet}
+                      onChange={handleInputChange}
+                      placeholder="255.255.255.0"
+                      style={{ fontFamily: 'monospace' }}
+                    />
+                  </Form.Item>
 
-                <div className="form-group">
-                  <label>Gateway</label>
-                  <input
-                    type="text"
-                    name="gateway"
-                    value={formData.gateway}
-                    onChange={handleInputChange}
-                    className="form-control"
-                    placeholder="192.168.1.1"
-                    style={{ fontFamily: 'monospace' }}
-                  />
-                </div>
-              </>
-            )}
+                  <Form.Item label="Gateway">
+                    <Input
+                      name="gateway"
+                      value={formData.gateway}
+                      onChange={handleInputChange}
+                      placeholder="192.168.1.1"
+                      style={{ fontFamily: 'monospace' }}
+                    />
+                  </Form.Item>
+                </>
+              )}
 
-            <button 
-              className="btn btn-success" 
-              onClick={handleSave}
-              disabled={saving || (formData.enableStaticIp && (!formData.ip || !formData.subnet || !formData.gateway))}
-            >
-              <Save size={16} style={{ marginRight: '8px' }} />
-              {saving ? 'Saving...' : 'Save Configuration'}
-            </button>
-          </div>
+              <Form.Item>
+                <Button 
+                  type="primary" 
+                  icon={<SaveOutlined />}
+                  onClick={handleSave}
+                  loading={saving}
+                  disabled={formData.enableStaticIp && (!formData.ip || !formData.subnet || !formData.gateway)}
+                >
+                  Save Configuration
+                </Button>
+              </Form.Item>
+            </Form>
+          </Card>
 
-          <div style={{ 
-            marginTop: '20px', 
-            padding: '15px', 
-            background: '#fff3cd', 
-            border: '1px solid #ffeaa7', 
-            borderRadius: '4px',
-            color: '#856404'
-          }}>
-            <strong>Note:</strong> Changing network configuration may temporarily disconnect the device. 
-            Make sure you can access the device on the new IP address before applying changes.
-          </div>
+          <Alert
+            message="Important Note"
+            description="Changing network configuration may temporarily disconnect the device. Make sure you can access the device on the new IP address before applying changes."
+            type="warning"
+            showIcon
+            style={{ marginTop: '16px' }}
+          />
         </>
       )}
-    </div>
+    </Card>
   );
 };
 
