@@ -2,12 +2,15 @@ import React, { useState } from 'react';
 import { X, Wifi, Check } from 'lucide-react';
 
 const ConnectionSettings = ({ onClose, onIPChange, currentIP }) => {
-  const [ip, setIP] = useState(currentIP);
+  // Work with full URL entered by user (e.g., http://192.168.1.34:8080)
+  const [ip, setIP] = useState(currentIP || '');
   const [isTesting, setIsTesting] = useState(false);
   const [testResult, setTestResult] = useState(null);
 
   const handleSave = () => {
-    onIPChange(ip);
+    const cleaned = (ip || '').trim();
+    const url = cleaned.startsWith('http://') || cleaned.startsWith('https://') ? cleaned : `https://${cleaned}`;
+    onIPChange(url);
     onClose();
   };
 
@@ -16,14 +19,16 @@ const ConnectionSettings = ({ onClose, onIPChange, currentIP }) => {
     setTestResult(null);
     
     try {
-      // First test basic connectivity
-      const pingResponse = await fetch(`http://${ip}/api/iobox/info`, {
+      // First test basic connectivity with HTTPS
+      const cleaned = (ip || '').trim();
+      const url = cleaned.startsWith('http://') || cleaned.startsWith('https://') ? cleaned : `https://${cleaned}`;
+      const pingResponse = await fetch(`${url}/api/iobox/info`, {
         method: 'GET',
         mode: 'cors',
         headers: {
           'Content-Type': 'application/json',
         },
-        signal: AbortSignal.timeout(5000)
+        signal: AbortSignal.timeout(10000) // Increased timeout for HTTPS
       });
       
       if (!pingResponse.ok) {
@@ -141,10 +146,11 @@ const ConnectionSettings = ({ onClose, onIPChange, currentIP }) => {
             <strong>Troubleshooting Tips:</strong>
             <ul style={{ margin: '10px 0 0 20px', color: '#6c757d' }}>
               <li>Ensure the IOBOX device is powered on and connected to the network</li>
-              <li>Verify the device has its web interface enabled</li>
-              <li>Check if the device is using a different port (try adding :8080 or :80 to the IP)</li>
+              <li>Verify the device has its web interface enabled with HTTPS support</li>
+              <li>Check if the device is using a different port (try adding :8443 or :443 to the IP)</li>
               <li>Make sure your computer and IOBOX are on the same network</li>
-              <li>Try accessing the device directly in a browser: <code>http://{ip}/api/iobox/info</code></li>
+              <li>Try accessing the device directly in a browser: <code>{(ip?.startsWith('http') ? ip : `https://${ip}`) || 'https://<device-ip>'}/api/iobox/info</code></li>
+              <li>If you get SSL certificate warnings, accept the self-signed certificate</li>
             </ul>
           </div>
       </div>

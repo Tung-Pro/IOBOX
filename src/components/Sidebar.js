@@ -69,7 +69,7 @@ const Sidebar = ({ activeTab, setActiveTab, isConnected, deviceInfo, onSettingsC
           gap: '10px'
         }}>
           <img src="/logo.png" alt="Logo" style={{ height: '32px', width: '32px', objectFit: 'contain', borderRadius: '8px' }} />
-          IOBOX Controller
+          <span style={{ fontSize: '18px', fontWeight: 'bold' }}>IOBOX CONTROLLER</span>
         </div>
         
         {/* Connection Status */}

@@ -1,11 +1,11 @@
 import axios from 'axios';
 
 class IOBoxAPI {
-  constructor(baseURL = 'http://192.168.101.34') {
+  constructor(baseURL = '') {
     this.baseURL = baseURL;
     this.api = axios.create({
       baseURL: this.baseURL,
-      timeout: 5000,
+      timeout: 10000, // Increased timeout for HTTPS
       headers: {
         'Content-Type': 'application/json',
       },
@@ -126,6 +126,10 @@ class IOBoxAPI {
   updateBaseURL(newURL) {
     this.baseURL = newURL;
     this.api.defaults.baseURL = newURL;
+  }
+
+  getBaseURL() {
+    return this.baseURL;
   }
 
   // Test connection to device

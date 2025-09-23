@@ -19,7 +19,12 @@ function App() {
 
 
   useEffect(() => {
-    checkConnection();
+    const url = ioboxAPI.getBaseURL();
+    if (url) {
+      checkConnection();
+    } else {
+      setShowConnectionSettings(true);
+    }
   }, []);
 
   const checkConnection = async () => {
@@ -36,7 +41,7 @@ function App() {
   };
 
   const handleIPChange = (newIP) => {
-    ioboxAPI.updateBaseURL(`http://${newIP}`);
+    ioboxAPI.updateBaseURL(newIP);
     checkConnection();
   };
 
@@ -104,7 +109,7 @@ function App() {
         <ConnectionSettings
           onClose={() => setShowConnectionSettings(false)}
           onIPChange={handleIPChange}
-          currentIP="192.168.101.34"
+          currentIP={ioboxAPI.getBaseURL()}
         />
       )}
     </Layout>

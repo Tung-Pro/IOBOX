@@ -16,6 +16,8 @@ const NetworkConfig = () => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState(null);
+  const [currentError, setCurrentError] = useState(null);
+  const [staticError, setStaticError] = useState(null);
   const [formData, setFormData] = useState({
     enableStaticIp: false,
     ip: '',
@@ -30,29 +32,42 @@ const NetworkConfig = () => {
   const loadNetworkConfig = async () => {
     setLoading(true);
     setMessage(null);
-    try {
-      const [current, staticCfg] = await Promise.all([
-        ioboxAPI.getNetworkConfig('current'),
-        ioboxAPI.getNetworkConfig('staticConfig')
-      ]);
-      
-      setCurrentConfig(current.config);
-      setStaticConfig(staticCfg.config);
-      
-      // Populate form with static config if available
-      if (staticCfg.config) {
+    setCurrentError(null);
+    setStaticError(null);
+
+    const [currentRes, staticRes] = await Promise.allSettled([
+      ioboxAPI.getNetworkConfig('current'),
+      ioboxAPI.getNetworkConfig('staticConfig')
+    ]);
+
+    if (currentRes.status === 'fulfilled') {
+      setCurrentConfig(currentRes.value.config);
+    } else {
+      setCurrentConfig(null);
+      setCurrentError(currentRes.reason?.message || 'Failed to load current network configuration');
+    }
+
+    if (staticRes.status === 'fulfilled') {
+      setStaticConfig(staticRes.value.config);
+      if (staticRes.value.config) {
         setFormData({
-          enableStaticIp: staticCfg.config.enableStaticIp || false,
-          ip: staticCfg.config.ip || '',
-          subnet: staticCfg.config.subnet || '',
-          gateway: staticCfg.config.gateway || ''
+          enableStaticIp: staticRes.value.config.enableStaticIp || false,
+          ip: staticRes.value.config.ip || '',
+          subnet: staticRes.value.config.subnet || '',
+          gateway: staticRes.value.config.gateway || ''
         });
       }
-    } catch (error) {
-      setMessage({ type: 'error', text: error.message });
-    } finally {
-      setLoading(false);
+    } else {
+      setStaticConfig(null);
+      setStaticError(staticRes.reason?.message || 'Failed to load saved static configuration');
     }
+
+    // If both failed, show a global message as well
+    if (currentRes.status === 'rejected' && staticRes.status === 'rejected') {
+      setMessage({ type: 'error', text: 'Failed to get network config: ' + (currentRes.reason?.message || staticRes.reason?.message || 'Unknown error') });
+    }
+
+    setLoading(false);
   };
 
   const handleInputChange = (e) => {
@@ -189,16 +204,29 @@ const NetworkConfig = () => {
           <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
             <Col xs={24} lg={12}>
               {currentConfig && formatConfigDisplay(
-                currentConfig, 
-                'Current Network', 
+                currentConfig,
+                'Current Network',
                 <CheckCircleOutlined style={{ color: '#52c41a' }} />
+              )}
+              {!currentConfig && currentError && (
+                <Alert type="error" showIcon message="Current Network" description={currentError} />
               )}
             </Col>
             <Col xs={24} lg={12}>
               {staticConfig && formatConfigDisplay(
-                staticConfig, 
-                'Saved Static Config', 
+                staticConfig,
+                'Saved Static Config',
                 <InfoCircleOutlined style={{ color: '#1890ff' }} />
+              )}
+              {!staticConfig && staticError && (
+                <Alert 
+                  type="warning" 
+                  showIcon 
+                  message="Saved Static Config"
+                  description={
+                    staticError + '. The device may not expose a saved static configuration. You can still configure a new static IP below.'
+                  } 
+                />
               )}
             </Col>
           </Row>
