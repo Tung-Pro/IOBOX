@@ -13,11 +13,11 @@ A modern React-based web application for controlling and monitoring ANS IOBOX de
 
 ## Device Information
 
-Your IOBOX device details:
+Example device details (for illustration only):
 - **Model**: ANS IOBOX
-- **Serial**: E831CDB4915F
-- **IP Address**: 192.168.101.34
-- **MAC Address**: e831cdb4915f
+- **Serial**: <your-serial>
+- **IP Address**: <device-ip>
+- **MAC Address**: <device-mac>
 
 ## Quick Start
 
@@ -37,7 +37,10 @@ Your IOBOX device details:
 
 4. **Configure Connection**
    - Click the "Settings" button in the top-right corner
-   - Enter your IOBOX IP address (default: 192.168.101.34)
+   - Enter your IOBOX device URL (include protocol and optional port). Examples:
+     - `https://192.168.1.34`
+     - `https://192.168.1.34:8443`
+     - `http://192.168.1.34` (only if the device serves HTTP)
    - Test the connection and save
 
 ## Usage Guide
@@ -90,10 +93,15 @@ The application communicates with your IOBOX device using these endpoints:
 ## Troubleshooting
 
 ### Connection Issues
-- Verify the IOBOX IP address is correct
+- Verify the IOBOX URL is correct (http/https and port if needed)
 - Ensure your computer and IOBOX are on the same network
 - Check firewall settings
-- Try pinging the device: `ping 192.168.101.34`
+- If using HTTPS with a self-signed certificate, open the device URL once in your browser (e.g. `https://<device-ip>/api/iobox/info`) and accept the warning
+- If it works in Postman but fails in the browser, enable CORS on the device:
+  - `Access-Control-Allow-Origin: *`
+  - `Access-Control-Allow-Methods: GET, POST, OPTIONS`
+  - `Access-Control-Allow-Headers: Content-Type`
+- Try pinging the device: `ping <device-ip>`
 
 ### Network Configuration
 - Make sure you can access the device on the new IP before applying changes
