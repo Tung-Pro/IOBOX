@@ -1,5 +1,14 @@
 import React, { useState } from 'react';
-import { RefreshCw, Cpu, Hash, Wifi, Globe, Layers } from 'lucide-react';
+import { Card, Button, Row, Col, Typography, Tag, Empty } from 'antd';
+import { 
+  ReloadOutlined, 
+  DesktopOutlined, 
+  NumberOutlined, 
+  WifiOutlined, 
+  GlobalOutlined, 
+  BuildOutlined,
+  ThunderboltOutlined 
+} from '@ant-design/icons';
 
 const DeviceInfo = ({ deviceInfo, onRefresh }) => {
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -15,67 +24,77 @@ const DeviceInfo = ({ deviceInfo, onRefresh }) => {
 
   if (!deviceInfo) {
     return (
-      <div className="card">
-        <h2>
-          <Cpu size={20} style={{ marginRight: '10px', verticalAlign: 'middle' }} />
-          Device Information
-        </h2>
-        <div className="loading">
-          <p>No device information available. Please check your connection.</p>
-          <button className="btn" onClick={handleRefresh} disabled={isRefreshing}>
-            <RefreshCw size={16} className={isRefreshing ? 'spinning' : ''} style={{ marginRight: '8px' }} />
-            {isRefreshing ? 'Refreshing...' : 'Refresh'}
-          </button>
-        </div>
-      </div>
+      <Card 
+        title={
+          <Typography.Title level={3} style={{ margin: 0, display: 'flex', alignItems: 'center' }}>
+            <DesktopOutlined style={{ marginRight: '8px', color: '#1890ff' }} />
+            Device Information
+          </Typography.Title>
+        }
+        extra={
+          <Button 
+            type="primary" 
+            icon={<ReloadOutlined spin={isRefreshing} />}
+            onClick={handleRefresh} 
+            loading={isRefreshing}
+          >
+            Refresh
+          </Button>
+        }
+      >
+        <Empty 
+          description="No device information available. Please check your connection."
+          image={Empty.PRESENTED_IMAGE_SIMPLE}
+        />
+      </Card>
     );
   }
 
   const infoItems = [
     {
-      icon: Cpu,
+      icon: <DesktopOutlined />,
       label: 'Model',
       value: deviceInfo.Model,
       description: 'Device model name'
     },
     {
-      icon: Hash,
+      icon: <NumberOutlined />,
       label: 'Serial Number',
       value: deviceInfo.Serial,
       description: 'Device serial number'
     },
     {
-      icon: Cpu,
+      icon: <ThunderboltOutlined />,
       label: 'MCU Serial',
       value: deviceInfo.SerialMcu,
       description: 'Microcontroller serial number'
     },
     {
-      icon: Layers,
+      icon: <BuildOutlined />,
       label: 'Hardware Version',
       value: deviceInfo.HwVer,
       description: 'Hardware version'
     },
     {
-      icon: Layers,
+      icon: <BuildOutlined />,
       label: 'Firmware Version',
       value: deviceInfo.FwVer,
       description: 'Main firmware version'
     },
     {
-      icon: Layers,
+      icon: <BuildOutlined />,
       label: 'MCU Firmware',
       value: deviceInfo.McuFwVer,
       description: 'MCU firmware version'
     },
     {
-      icon: Wifi,
+      icon: <WifiOutlined />,
       label: 'MAC Address',
       value: deviceInfo.macAddr,
       description: 'Device MAC address'
     },
     {
-      icon: Globe,
+      icon: <GlobalOutlined />,
       label: 'Local IP',
       value: deviceInfo.localIp,
       description: 'Current IP address'
@@ -83,65 +102,75 @@ const DeviceInfo = ({ deviceInfo, onRefresh }) => {
   ];
 
   return (
-    <div className="card">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h2>
-          <Cpu size={20} style={{ marginRight: '10px', verticalAlign: 'middle' }} />
+    <Card 
+      title={
+        <Typography.Title level={3} style={{ margin: 0, display: 'flex', alignItems: 'center' }}>
+          <DesktopOutlined style={{ marginRight: '8px', color: '#1890ff' }} />
           Device Information
-        </h2>
-        <button className="btn" onClick={handleRefresh} disabled={isRefreshing}>
-          <RefreshCw size={16} className={isRefreshing ? 'spinning' : ''} style={{ marginRight: '8px' }} />
-          {isRefreshing ? 'Refreshing...' : 'Refresh'}
-        </button>
-      </div>
-
-      <div className="grid grid-2">
-        {infoItems.map((item, index) => {
-          const Icon = item.icon;
-          return (
-            <div key={index} className="info-item" style={{ 
-              background: '#f8f9fa', 
-              padding: '15px', 
-              borderRadius: '6px', 
-              border: '1px solid #e9ecef' 
-            }}>
+        </Typography.Title>
+      }
+      extra={
+        <Button 
+          type="primary" 
+          icon={<ReloadOutlined spin={isRefreshing} />}
+          onClick={handleRefresh} 
+          loading={isRefreshing}
+        >
+          Refresh
+        </Button>
+      }
+    >
+      <Row gutter={[16, 16]}>
+        {infoItems.map((item, index) => (
+          <Col xs={24} sm={12} lg={8} key={index}>
+            <Card 
+              size="small" 
+              hoverable
+              style={{ 
+                height: '100%',
+                background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)'
+              }}
+            >
               <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
-                <Icon size={18} style={{ marginRight: '10px', color: '#3498db' }} />
-                <strong style={{ color: '#2c3e50' }}>{item.label}</strong>
+                <span style={{ marginRight: '8px', color: '#1890ff', fontSize: '16px' }}>
+                  {item.icon}
+                </span>
+                <Typography.Text strong style={{ color: '#262626' }}>
+                  {item.label}
+                </Typography.Text>
               </div>
-              <div style={{ fontSize: '16px', fontWeight: '500', marginBottom: '5px', color: '#495057' }}>
+              <Typography.Text style={{ 
+                fontSize: '16px', 
+                fontWeight: '500', 
+                display: 'block',
+                marginBottom: '4px',
+                color: '#595959'
+              }}>
                 {item.value}
-              </div>
-              <div style={{ fontSize: '12px', color: '#6c757d' }}>
+              </Typography.Text>
+              <Typography.Text type="secondary" style={{ fontSize: '12px' }}>
                 {item.description}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+              </Typography.Text>
+            </Card>
+          </Col>
+        ))}
+      </Row>
 
       {deviceInfo.socks && deviceInfo.socks.length > 0 && (
-        <div style={{ marginTop: '20px' }}>
-          <h3 style={{ marginBottom: '10px', color: '#2c3e50' }}>Available Sockets</h3>
-          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+        <div style={{ marginTop: '24px' }}>
+          <Typography.Title level={4} style={{ marginBottom: '16px', color: '#262626' }}>
+            Available Sockets
+          </Typography.Title>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             {deviceInfo.socks.map((socket, index) => (
-              <span 
-                key={index}
-                style={{
-                  background: '#3498db',
-                  color: 'white',
-                  padding: '5px 10px',
-                  borderRadius: '4px',
-                  fontSize: '14px'
-                }}
-              >
+              <Tag key={index} color="blue" style={{ fontSize: '14px', padding: '4px 8px' }}>
                 Socket {socket}
-              </span>
+              </Tag>
             ))}
           </div>
         </div>
       )}
-    </div>
+    </Card>
   );
 };
 

@@ -30,7 +30,7 @@ const ConnectionSettings = ({ onClose, onIPChange, currentIP }) => {
         throw new Error(`HTTP ${pingResponse.status}: ${pingResponse.statusText}`);
       }
       
-      const data = await pingResponse.json();
+      await pingResponse.json();
       setTestResult({ success: true, message: 'Connection successful! Device responded correctly.' });
     } catch (error) {
       let errorMessage = 'Connection failed: ';

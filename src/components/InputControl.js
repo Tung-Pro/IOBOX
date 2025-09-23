@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Send, RefreshCw, ToggleLeft, ToggleRight, Check, X } from 'lucide-react';
+import { Settings, Send, RefreshCw, ToggleRight, Check, X } from 'lucide-react';
 import ioboxAPI from '../services/ioboxApi';
 
 const InputControl = () => {

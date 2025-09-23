@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Zap, RefreshCw, Save, Plus, Trash2, Edit3, Check, X } from 'lucide-react';
+import { Zap, RefreshCw, Save, Plus, Trash2, Check, X } from 'lucide-react';
 import ioboxAPI from '../services/ioboxApi';
 
 const LogicConfig = () => {
@@ -7,7 +7,6 @@ const LogicConfig = () => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState(null);
-  const [editingRule, setEditingRule] = useState(null);
   const [showAddRule, setShowAddRule] = useState(false);
 
   const [newRule, setNewRule] = useState({

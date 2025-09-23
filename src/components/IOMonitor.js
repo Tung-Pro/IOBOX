@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Activity, RefreshCw, Zap, ZapOff, Gauge, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Activity, RefreshCw, Zap, Gauge, ToggleLeft, ToggleRight } from 'lucide-react';
 import ioboxAPI from '../services/ioboxApi';
 
 const IOMonitor = () => {

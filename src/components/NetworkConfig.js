@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Network, RefreshCw, Save, Wifi, WifiOff } from 'lucide-react';
+import { Network, RefreshCw, Save, Wifi } from 'lucide-react';
 import ioboxAPI from '../services/ioboxApi';
 
 const NetworkConfig = () => {
