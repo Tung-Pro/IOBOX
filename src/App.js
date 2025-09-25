@@ -4,8 +4,7 @@ import { ReloadOutlined } from '@ant-design/icons';
 import ioboxAPI from './services/ioboxApi';
 import DeviceInfo from './components/DeviceInfo';
 import NetworkConfig from './components/NetworkConfig';
-import IOMonitor from './components/IOMonitor';
-import InputControl from './components/InputControl';
+import IOPanel from './components/IOPanel';
 import LogicConfig from './components/LogicConfig';
 import ConnectionSettings from './components/ConnectionSettings';
 import Sidebar from './components/Sidebar';
@@ -52,9 +51,9 @@ function App() {
       case 'network':
         return <NetworkConfig />;
       case 'io':
-        return <IOMonitor />;
+        return <IOPanel />;
       case 'control':
-        return <InputControl />;
+        return <IOPanel />;
       case 'logic':
         return <LogicConfig />;
       default:

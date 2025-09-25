@@ -4,7 +4,6 @@ import {
   DesktopOutlined, 
   GlobalOutlined, 
   MonitorOutlined, 
-  ControlOutlined, 
   ThunderboltOutlined,
   WifiOutlined
 } from '@ant-design/icons';
@@ -26,12 +25,7 @@ const Sidebar = ({ activeTab, setActiveTab, isConnected, deviceInfo, onSettingsC
     {
       key: 'io',
       icon: <MonitorOutlined />,
-      label: 'IO Monitor',
-    },
-    {
-      key: 'control',
-      icon: <ControlOutlined />,
-      label: 'Input Control',
+      label: 'IO Panel',
     },
     {
       key: 'logic',
