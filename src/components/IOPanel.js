@@ -303,7 +303,7 @@ const IOPanel = () => {
           <div style={{ background: '#ffffff', padding: 16, borderRadius: 12, border: '1px solid #eef2f7', boxShadow: '0 1px 2px rgba(16,24,40,0.04)' }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', marginBottom: '12px' }}>
               {controls[selectedType].map((value, index) => (
-                <div key={index} style={{ textAlign: 'center' }}>
+                <div key={index} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                   <div style={{ fontSize: '12px', color: '#6c757d', marginBottom: '5px', fontWeight: '500' }}>
                     {selectedType} {index + 1}
                   </div>
@@ -320,6 +320,10 @@ const IOPanel = () => {
                       fontWeight: 700,
                       cursor: 'pointer',
                       transition: 'all 0.2s',
+                      outline: 'none',
+                      outlineOffset: 0,
+                      boxShadow: 'none',
+                      boxSizing: 'border-box',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center'
