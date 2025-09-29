@@ -12,6 +12,7 @@ const LogicConfig = () => {
   const [newRule, setNewRule] = useState({
     output: 'DO1',
     enabled: true,
+    analogSetting: { min: 0, max: 100, type: 'in_range' },
     conditions: [
       { inputType: 'DI', inputIndex: 1, trigger: 'level', timer: 0 }
     ],
@@ -27,7 +28,12 @@ const LogicConfig = () => {
     setMessage(null);
     try {
       const data = await ioboxAPI.getLogicConfig('all');
-      setLogicData(data.rules);
+      // Ensure backward compatibility: add default analogSetting if missing
+      const rulesWithDefaults = (data.rules || []).map(rule => ({
+        ...rule,
+        analogSetting: rule.analogSetting || { min: 0, max: 100, type: 'in_range' }
+      }));
+      setLogicData(rulesWithDefaults);
     } catch (error) {
       setMessage({ type: 'error', text: error.message });
     } finally {
@@ -40,9 +46,30 @@ const LogicConfig = () => {
     setMessage(null);
     
     try {
-      const rules = logicData || [];
-      await ioboxAPI.configureLogic(rules);
-      setMessage({ type: 'success', text: `Logic configuration applied successfully! ${rules.length} rules configured.` });
+      const rules = (logicData || []).map(rule => ({
+        ...rule,
+        analogSetting: rule.analogSetting || { min: 0, max: 100, type: 'in_range' }
+      }));
+
+      // Basic validation for analogSetting
+      for (const [idx, rule] of rules.entries()) {
+        const a = rule.analogSetting || { min: 0, max: 100, type: 'in_range' };
+        const min = Number(a.min);
+        const max = Number(a.max);
+        const type = a.type;
+        if (!Number.isFinite(min) || !Number.isFinite(max)) {
+          throw new Error(`Rule ${idx + 1}: Min/Max must be valid numbers`);
+        }
+        if (min > max) {
+          throw new Error(`Rule ${idx + 1}: Min cannot be greater than Max`);
+        }
+        if (type !== 'in_range' && type !== 'out_range') {
+          throw new Error(`Rule ${idx + 1}: Type must be 'in_range' or 'out_range'`);
+        }
+      }
+      const resp = await ioboxAPI.configureLogic(rules);
+      const applied = resp && typeof resp.applied_rules === 'number' ? resp.applied_rules : rules.length;
+      setMessage({ type: 'success', text: `Logic configuration applied successfully! ${applied} rules configured.` });
     } catch (error) {
       setMessage({ type: 'error', text: error.message });
     } finally {
@@ -80,6 +107,7 @@ const LogicConfig = () => {
     setNewRule({
       output: 'DO1',
       enabled: true,
+      analogSetting: { min: 0, max: 100, type: 'in_range' },
       conditions: [
         { inputType: 'DI', inputIndex: 1, trigger: 'level', timer: 0 }
       ],
@@ -242,6 +270,62 @@ const LogicConfig = () => {
       </div>
 
       <div style={{ marginBottom: '15px' }}>
+        <strong>Analog Setting</strong>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '10px', marginTop: '10px' }}>
+          <div>
+            <label style={{ fontSize: '12px', color: '#6c757d' }}>Type</label>
+            <select
+              value={(rule.analogSetting && rule.analogSetting.type) || 'in_range'}
+              onChange={(e) => {
+                const updatedRules = [...logicData];
+                const current = updatedRules[ruleIndex].analogSetting || { min: 0, max: 100, type: 'in_range' };
+                updatedRules[ruleIndex].analogSetting = { ...current, type: e.target.value };
+                setLogicData(updatedRules);
+              }}
+              className="form-control"
+              style={{ fontSize: '12px' }}
+            >
+              <option value="in_range">in_range</option>
+              <option value="out_range">out_range</option>
+            </select>
+          </div>
+          <div>
+            <label style={{ fontSize: '12px', color: '#6c757d' }}>Min</label>
+            <input
+              type="number"
+              value={(rule.analogSetting && rule.analogSetting.min) ?? 0}
+              onChange={(e) => {
+                const updatedRules = [...logicData];
+                const current = updatedRules[ruleIndex].analogSetting || { min: 0, max: 100, type: 'in_range' };
+                updatedRules[ruleIndex].analogSetting = { ...current, min: Number(e.target.value) };
+                setLogicData(updatedRules);
+              }}
+              className="form-control"
+              style={{ fontSize: '12px' }}
+            />
+          </div>
+          <div>
+            <label style={{ fontSize: '12px', color: '#6c757d' }}>Max</label>
+            <input
+              type="number"
+              value={(rule.analogSetting && rule.analogSetting.max) ?? 100}
+              onChange={(e) => {
+                const updatedRules = [...logicData];
+                const current = updatedRules[ruleIndex].analogSetting || { min: 0, max: 100, type: 'in_range' };
+                updatedRules[ruleIndex].analogSetting = { ...current, max: Number(e.target.value) };
+                setLogicData(updatedRules);
+              }}
+              className="form-control"
+              style={{ fontSize: '12px' }}
+            />
+          </div>
+        </div>
+        <small style={{ color: '#6c757d' }}>
+          in_range: true khi AI nằm trong [min, max]; out_range: true khi AI nằm ngoài.
+        </small>
+      </div>
+
+      <div style={{ marginBottom: '15px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
           <strong>Conditions</strong>
           <button 
@@ -262,12 +346,12 @@ const LogicConfig = () => {
 
   return (
     <div className="card">
-      <div className="card-header">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
         <h2>
           <Zap size={20} style={{ marginRight: '10px', verticalAlign: 'middle' }} />
           Logic Configuration
         </h2>
-        <div className="row" style={{ gap: '10px' }}>
+        <div style={{ display: 'flex', gap: '10px' }}>
           <button className="btn" onClick={loadLogicConfig} disabled={loading}>
             <RefreshCw size={16} className={loading ? 'spinning' : ''} style={{ marginRight: '8px' }} />
             {loading ? 'Loading...' : 'Refresh'}
@@ -293,7 +377,7 @@ const LogicConfig = () => {
         <div className="loading">Loading logic configuration...</div>
       ) : (
         <>
-          <div className="row-between" style={{ marginBottom: '20px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
             <h3>Logic Rules</h3>
             <button 
               className="btn btn-success"
@@ -394,3 +478,4 @@ const LogicConfig = () => {
 };
 
 export default LogicConfig;
+
