@@ -262,12 +262,12 @@ const LogicConfig = () => {
 
   return (
     <div className="card">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+      <div className="card-header">
         <h2>
           <Zap size={20} style={{ marginRight: '10px', verticalAlign: 'middle' }} />
           Logic Configuration
         </h2>
-        <div style={{ display: 'flex', gap: '10px' }}>
+        <div className="row" style={{ gap: '10px' }}>
           <button className="btn" onClick={loadLogicConfig} disabled={loading}>
             <RefreshCw size={16} className={loading ? 'spinning' : ''} style={{ marginRight: '8px' }} />
             {loading ? 'Loading...' : 'Refresh'}
@@ -293,7 +293,7 @@ const LogicConfig = () => {
         <div className="loading">Loading logic configuration...</div>
       ) : (
         <>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+          <div className="row-between" style={{ marginBottom: '20px' }}>
             <h3>Logic Rules</h3>
             <button 
               className="btn btn-success"

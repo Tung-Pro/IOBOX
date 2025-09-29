@@ -84,40 +84,23 @@ const IOPanel = () => {
     }} />
   );
 
-  const chipStyle = (active) => ({
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: 6,
-    padding: '6px 10px',
-    borderRadius: 9999,
-    fontSize: 12,
-    fontWeight: 600,
-    color: active ? '#155724' : '#721c24',
-    background: active ? '#d4edda' : '#f8d7da',
-    border: `1px solid ${active ? '#c3e6cb' : '#f5c6cb'}`
-  });
+  const chipClass = (active) => `badge ${active ? 'badge-success' : 'badge-error'}`;
 
-  const sectionCard = {
-    background: '#ffffff',
-    border: '1px solid #eef2f7',
-    borderRadius: 12,
-    padding: 16,
-    boxShadow: '0 1px 2px rgba(16,24,40,0.04)'
-  };
+  const sectionCardClass = 'section-card';
 
   const renderIOGroup = (type, values, title, description) => {
     const Icon = getIOIcon(type);
     const color = getIOColor(type, values);
 
     return (
-      <div key={type} style={sectionCard}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div key={type} className={sectionCardClass}>
+        <div className="row-between" style={{ marginBottom: 8 }}>
+          <div className="row" style={{ gap: 8 }}>
             <Icon size={18} style={{ color }} />
             <h4 style={{ margin: 0, color: '#111827', fontSize: 14 }}>{title}</h4>
           </div>
           {type !== 'AI' && (
-            <span style={{ fontSize: 12, color: '#6b7280' }}>{description}</span>
+            <span className="muted-text" style={{ fontSize: 12 }}>{description}</span>
           )}
         </div>
 
@@ -144,7 +127,7 @@ const IOPanel = () => {
             {values.map((val, index) => (
               <div key={index} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px', border: '1px solid #eef2f7', borderRadius: 10, background: '#fafbfd' }}>
                 <span style={{ fontSize: 12, color: '#6b7280', fontWeight: 600 }}>{type}{index + 1}</span>
-                <span style={chipStyle(val === 1)}>
+                <span className={chipClass(val === 1)}>
                   <Dot color={val === 1 ? '#16a34a' : '#ef4444'} />
                   {val === 1 ? 'ON' : 'OFF'}
                 </span>
@@ -223,21 +206,21 @@ const IOPanel = () => {
   }
 
   return (
-    <div className="card" style={{ borderRadius: 16, border: '1px solid #eef2f7', boxShadow: '0 2px 6px rgba(16,24,40,0.06)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+    <div className="card">
+      <div className="card-header">
+        <div className="row" style={{ gap: 10 }}>
           <div style={{ width: 36, height: 36, borderRadius: 8, background: '#e8f4fd', display: 'grid', placeItems: 'center' }}>
             <Activity size={18} color="#0ea5e9" />
           </div>
           <div>
             <h2 style={{ margin: 0, fontSize: 18, color: '#111827' }}>Status</h2>
-            <div style={{ fontSize: 12, color: '#6b7280' }}>Last updated: {lastUpdated ? lastUpdated.toLocaleTimeString() : '—'}</div>
+            <div className="muted-text" style={{ fontSize: 12 }}>Last updated: {lastUpdated ? lastUpdated.toLocaleTimeString() : '—'}</div>
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#f8fafc', border: '1px solid #eef2f7', borderRadius: 10, padding: '6px 10px' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#111827' }}>
+        <div className="row" style={{ gap: 10 }}>
+          <div className="row" style={{ gap: 8, background: '#f8fafc', border: '1px solid #eef2f7', borderRadius: 10, padding: '6px 10px' }}>
+            <label className="row" style={{ gap: 6, fontSize: 12, color: '#111827' }}>
               <input
                 type="checkbox"
                 checked={autoRefresh}
@@ -277,7 +260,7 @@ const IOPanel = () => {
             {renderIOGroup('DO', ioData.DO, 'Digital Output', '4 channels - Digital output states')}
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '24px 0 12px' }}>
+          <div className="row-between" style={{ margin: '24px 0 12px' }}>
             <h3 style={{ margin: 0 }}>
               <Settings size={18} style={{ marginRight: '8px', verticalAlign: 'middle' }} />
               Input Control
