@@ -149,7 +149,7 @@ const ConnectionSettings = ({ onClose, onIPChange, currentIP }) => {
               <li>Verify the device has its web interface enabled with HTTPS support</li>
               <li>Check if the device is using a different port (try adding :8443 or :443 to the IP)</li>
               <li>Make sure your computer and IOBOX are on the same network</li>
-              <li>Try accessing the device directly in a browser: <code>{(ip?.startsWith('http') ? ip : `https://${ip}`) || 'https://<device-ip>'}/api/iobox/info</code></li>
+              <li>Try accessing the device directly in a browser: <a href={`${(ip?.startsWith('http') ? ip : `https://${ip}`) || 'https://<device-ip>'}/api/iobox/info`} target="_blank" rel="noopener noreferrer">{`${(ip?.startsWith('http') ? ip : `https://${ip}`) || 'https://<device-ip>'}/api/iobox/info`}</a></li>
               <li>If you get SSL certificate warnings, accept the self-signed certificate</li>
             </ul>
           </div>
