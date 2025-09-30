@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Zap, RefreshCw, Save, Plus, Trash2, Check, X } from 'lucide-react';
 import ioboxAPI from '../services/ioboxApi';
 
@@ -19,27 +19,39 @@ const LogicConfig = () => {
     logic: 'C1'
   });
 
-  useEffect(() => {
-    loadLogicConfig();
-  }, []);
+  
 
-  const loadLogicConfig = async () => {
+  const normalizeAnalogType = (raw) => {
+    const t = String(raw || '').toLowerCase().trim();
+    if (t === 'in_range' || t === 'inrange' || t === 'in' || t === 'in-range') return 'in_range';
+    if (t === 'out_range' || t === 'outrange' || t === 'out' || t === 'out-range') return 'out_range';
+    return 'in_range';
+  };
+
+  const loadLogicConfig = useCallback(async () => {
     setLoading(true);
     setMessage(null);
     try {
       const data = await ioboxAPI.getLogicConfig('all');
       // Ensure backward compatibility: add default analogSetting if missing
-      const rulesWithDefaults = (data.rules || []).map(rule => ({
-        ...rule,
-        analogSetting: rule.analogSetting || { min: 0, max: 100, type: 'in_range' }
-      }));
+      const rulesWithDefaults = (data.rules || []).map(rule => {
+        const analog = rule.analogSetting || { min: 0, max: 100, type: 'in_range' };
+        return {
+          ...rule,
+          analogSetting: { ...analog, type: normalizeAnalogType(analog.type) }
+        };
+      });
       setLogicData(rulesWithDefaults);
     } catch (error) {
       setMessage({ type: 'error', text: error.message });
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadLogicConfig();
+  }, [loadLogicConfig]);
 
   const handleSaveLogic = async () => {
     setSaving(true);
@@ -48,7 +60,10 @@ const LogicConfig = () => {
     try {
       const rules = (logicData || []).map(rule => ({
         ...rule,
-        analogSetting: rule.analogSetting || { min: 0, max: 100, type: 'in_range' }
+        analogSetting: (() => {
+          const a = rule.analogSetting || { min: 0, max: 100, type: 'in_range' };
+          return { ...a, type: normalizeAnalogType(a.type) };
+        })()
       }));
 
       // Basic validation for analogSetting
@@ -56,7 +71,7 @@ const LogicConfig = () => {
         const a = rule.analogSetting || { min: 0, max: 100, type: 'in_range' };
         const min = Number(a.min);
         const max = Number(a.max);
-        const type = a.type;
+        const type = normalizeAnalogType(a.type);
         if (!Number.isFinite(min) || !Number.isFinite(max)) {
           throw new Error(`Rule ${idx + 1}: Min/Max must be valid numbers`);
         }
