@@ -97,6 +97,7 @@ code {
 }
 
 .btn {
+  display: inline-flex;
   background-color: #3498db;
   color: white;
   border: none;

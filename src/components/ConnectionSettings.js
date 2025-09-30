@@ -78,7 +78,7 @@ const ConnectionSettings = ({ onClose, onIPChange, currentIP }) => {
         boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)'
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <h2 style={{ margin: 0, color: '#2c3e50' }}>
+          <h2 style={{ margin: 0, color: '#2c3e50', display: 'inline-flex', alignItems: 'center' }}>
             <Wifi size={20} style={{ marginRight: '10px', verticalAlign: 'middle' }} />
             Connection Settings
           </h2>

@@ -122,6 +122,16 @@ class IOBoxAPI {
     }
   }
 
+  // 8. Factory reset device
+  async factoryReset() {
+    try {
+      const response = await this.api.post('/api/iobox/factory_reset');
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to factory reset: ${error.message}`);
+    }
+  }
+
   // Utility method to update base URL
   updateBaseURL(newURL) {
     this.baseURL = newURL;
