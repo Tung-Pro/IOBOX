@@ -177,7 +177,9 @@ const DeviceInfo = ({ deviceInfo, onRefresh }) => {
                   {item.label}
                 </Typography.Text>
               </div>
-              <Typography.Text style={{ 
+              <Typography.Text 
+                copyable={{ text: String(item.value ?? '') }}
+                style={{ 
                 fontSize: '16px', 
                 fontWeight: '500', 
                 display: 'block',

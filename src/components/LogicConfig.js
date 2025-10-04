@@ -336,7 +336,7 @@ const LogicConfig = () => {
           </div>
         </div>
         <small style={{ color: '#6c757d' }}>
-          in_range: true khi AI nằm trong [min, max]; out_range: true khi AI nằm ngoài.
+          in_range: true when AI is within [min, max]; out_range: true when AI is outside.  
         </small>
       </div>
 
@@ -483,6 +483,7 @@ const LogicConfig = () => {
               <li><strong>Conditions:</strong> Define input triggers (level, rising_edge, falling_edge)</li>
               <li><strong>Logic Expression:</strong> Use C1, C2, etc. for conditions. Operators: && (AND), || (OR), ! (NOT)</li>
               <li><strong>Timer:</strong> Delay in milliseconds before condition is evaluated</li>
+              <li><strong>Analog Setting Type:</strong> Accepted values are <code>in_range</code> and <code>out_range</code>. The app also normalizes common variants like <code>inrange</code>/<code>outrange</code>.</li>
               <li><strong>Example:</strong> "C1 && C2" means both condition 1 AND condition 2 must be true</li>
             </ul>
           </div>
