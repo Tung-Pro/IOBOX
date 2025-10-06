@@ -7,6 +7,7 @@ import NetworkConfig from './components/NetworkConfig';
 import IOPanel from './components/IOPanel';
 import LogicConfig from './components/LogicConfig';
 import ConnectionSettings from './components/ConnectionSettings';
+import ConfigManager from './components/ConfigManager';
 import Sidebar from './components/Sidebar';
 
 function App() {
@@ -56,6 +57,8 @@ function App() {
         return <IOPanel />;
       case 'logic':
         return <LogicConfig />;
+      case 'config':
+        return <ConfigManager />;
       default:
         return <DeviceInfo deviceInfo={deviceInfo} onRefresh={checkConnection} />;
     }

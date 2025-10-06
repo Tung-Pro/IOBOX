@@ -151,6 +151,58 @@ class IOBoxAPI {
       return false;
     }
   }
+
+  // Get all device configuration for export
+  async getAllConfig() {
+    try {
+      const [deviceInfo, networkConfig, ioStatus, logicConfig] = await Promise.allSettled([
+        this.getDeviceInfo(),
+        this.getNetworkConfig('current'),
+        this.getIOStatus('all'),
+        this.getLogicConfig('all')
+      ]);
+
+      return {
+        deviceInfo: deviceInfo.status === 'fulfilled' ? deviceInfo.value : null,
+        networkConfig: networkConfig.status === 'fulfilled' ? networkConfig.value : null,
+        ioStatus: ioStatus.status === 'fulfilled' ? ioStatus.value : null,
+        logicConfig: logicConfig.status === 'fulfilled' ? logicConfig.value : null,
+        errors: {
+          deviceInfo: deviceInfo.status === 'rejected' ? deviceInfo.reason?.message : null,
+          networkConfig: networkConfig.status === 'rejected' ? networkConfig.reason?.message : null,
+          ioStatus: ioStatus.status === 'rejected' ? ioStatus.reason?.message : null,
+          logicConfig: logicConfig.status === 'rejected' ? logicConfig.reason?.message : null
+        }
+      };
+    } catch (error) {
+      throw new Error(`Failed to get all configuration: ${error.message}`);
+    }
+  }
+
+  // Apply configuration from import
+  async applyConfig(config) {
+    try {
+      const results = [];
+      
+      // Apply logic configuration if available
+      if (config.logicConfig?.rules) {
+        try {
+          await this.configureLogic(config.logicConfig.rules);
+          results.push('Logic configuration applied');
+        } catch (error) {
+          results.push(`Logic config failed: ${error.message}`);
+        }
+      }
+      
+      return {
+        success: true,
+        results: results,
+        message: `Configuration applied successfully! Results: ${results.join(', ')}`
+      };
+    } catch (error) {
+      throw new Error(`Failed to apply configuration: ${error.message}`);
+    }
+  }
 }
 
 // Create and export a singleton instance

@@ -10,6 +10,7 @@ A modern React-based web application for controlling and monitoring ANS IOBOX de
 - **Input Control**: Control AIBox Input (AIB) and System Input (SI) channels
 - **Logic Configuration**: Set up automation rules with conditions and logic expressions
 - **Connection Management**: Easy IP address configuration and connection testing
+ - **Config Manager**: Export full device config; Import applies logic rules only (network ignored)
 
 ## Device Information
 
@@ -77,6 +78,11 @@ Example device details (for illustration only):
 - Use logic expressions (C1 && C2, C1 || C2, etc.)
 - Enable/disable rules individually
 
+### Config Manager Tab
+- Export all current device configuration to a JSON file
+- Import a configuration file to apply logic rules only (network settings are ignored)
+- Recommended: export a backup before importing
+
 ## API Endpoints Used
 
 The application communicates with your IOBOX device using these endpoints:
@@ -107,6 +113,10 @@ The application communicates with your IOBOX device using these endpoints:
 - Make sure you can access the device on the new IP before applying changes
 - Have a backup way to access the device (serial console, etc.)
 - Test connectivity after network changes
+
+### Config Import Behavior
+- Import applies only logic rules; network settings from the file are ignored
+- To change network settings, use the Network tab separately
 
 ### Logic Configuration
 - Use proper logic syntax: C1, C2, etc. for conditions

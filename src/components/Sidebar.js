@@ -5,7 +5,8 @@ import {
   GlobalOutlined, 
   MonitorOutlined, 
   ThunderboltOutlined,
-  WifiOutlined
+  WifiOutlined,
+  FileTextOutlined
 } from '@ant-design/icons';
 
 const { Sider } = Layout;
@@ -31,6 +32,11 @@ const Sidebar = ({ activeTab, setActiveTab, isConnected, deviceInfo, onSettingsC
       key: 'logic',
       icon: <ThunderboltOutlined />,
       label: 'Logic Config',
+    },
+    {
+      key: 'config',
+      icon: <FileTextOutlined />,
+      label: 'Config Manager',
     },
   ];
 

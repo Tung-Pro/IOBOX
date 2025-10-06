@@ -153,6 +153,32 @@ const ConnectionSettings = ({ onClose, onIPChange, currentIP }) => {
               <li>If you get SSL certificate warnings, accept the self-signed certificate</li>
             </ul>
           </div>
+
+          <div style={{ 
+            marginTop: '12px', 
+            padding: '12px', 
+            background: '#f0f7ff', 
+            border: '1px solid #d6e9ff', 
+            borderRadius: '6px'
+          }}>
+            <div style={{ marginBottom: '8px', color: '#0b5ed7', fontWeight: 600 }}>
+              Need to find the device IP on your network?
+            </div>
+            <a 
+              href="/downloads/IOBOX_Manager.zip" 
+              download
+              style={{ 
+                display: 'inline-block', 
+                padding: '8px 12px', 
+                background: '#0d6efd', 
+                color: '#fff', 
+                borderRadius: '4px',
+                textDecoration: 'none'
+              }}
+            >
+              Download IOBOX Manager (IP Scanner)
+            </a>
+          </div>
       </div>
     </div>
   );
