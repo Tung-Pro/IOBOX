@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Activity, RefreshCw, Zap, Gauge, ToggleLeft, ToggleRight, Settings, Send, Check, X } from 'lucide-react';
+import { Button, Alert, Select, Switch, Spin, Card, Segmented } from 'antd';
+import { AppstoreOutlined, ReloadOutlined, ThunderboltOutlined, DashboardOutlined, ControlOutlined, SettingOutlined, SendOutlined, CheckOutlined, CloseOutlined } from '@ant-design/icons';
 import ioboxAPI from '../services/ioboxApi';
 
 const IOPanel = () => {
@@ -7,7 +8,7 @@ const IOPanel = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [autoRefresh, setAutoRefresh] = useState(false);
-  const [refreshInterval, setRefreshInterval] = useState(1000);
+  const [refreshInterval, setRefreshInterval] = useState(1500);
   const [lastUpdated, setLastUpdated] = useState(null);
 
   const [selectedType, setSelectedType] = useState('AIB');
@@ -54,12 +55,12 @@ const IOPanel = () => {
 
   const getIOIcon = (type) => {
     switch (type) {
-      case 'AI': return Gauge;
-      case 'DI': return ToggleLeft;
-      case 'AIB': return ToggleRight;
-      case 'SI': return ToggleRight;
-      case 'DO': return Zap;
-      default: return Activity;
+      case 'AI': return DashboardOutlined;
+      case 'DI': return ControlOutlined;
+      case 'AIB': return ControlOutlined;
+      case 'SI': return ControlOutlined;
+      case 'DO': return ThunderboltOutlined;
+      default: return AppstoreOutlined;
     }
   };
 
@@ -192,15 +193,16 @@ const IOPanel = () => {
     return (
       <div className="card">
         <h2>
-          <Activity size={20} style={{ marginRight: '10px', verticalAlign: 'middle' }} />
+          <AppstoreOutlined style={{ marginRight: 10, verticalAlign: 'middle' }} />
           IO Monitor & Control
         </h2>
-        <div className="alert alert-error">
-          <strong>Error:</strong> {error}
-          <button className="btn" style={{ marginLeft: '10px' }} onClick={loadIOData}>
-            Retry
-          </button>
-        </div>
+        <Alert
+          type="error"
+          message="Error"
+          description={error}
+          action={<Button size="small" onClick={loadIOData}>Retry</Button>}
+          showIcon
+        />
       </div>
     );
   }
@@ -208,10 +210,10 @@ const IOPanel = () => {
   return (
     <div className="card">
       <div className="card-header">
-        <div className="row" style={{ gap: 10 }}>
-          <div style={{ width: 36, height: 36, borderRadius: 8, background: '#e8f4fd', display: 'grid', placeItems: 'center' }}>
-            <Activity size={18} color="#0ea5e9" />
-          </div>
+          <div className="row" style={{ gap: 10 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 8, background: '#e8f4fd', display: 'grid', placeItems: 'center' }}>
+              <AppstoreOutlined style={{ fontSize: 18, color: '#0ea5e9' }} />
+            </div>
           <div>
             <h2 style={{ margin: 0, fontSize: 18, color: '#111827' }}>Status</h2>
             <div className="muted-text" style={{ fontSize: 12 }}>Last updated: {lastUpdated ? lastUpdated.toLocaleTimeString() : '—'}</div>
@@ -219,37 +221,39 @@ const IOPanel = () => {
         </div>
 
         <div className="row" style={{ gap: 10 }}>
-          <div className="row" style={{ gap: 8, background: '#f8fafc', border: '1px solid #eef2f7', borderRadius: 10, padding: '6px 10px' }}>
-            <label className="row" style={{ gap: 6, fontSize: 12, color: '#111827' }}>
-              <input
-                type="checkbox"
-                checked={autoRefresh}
-                onChange={(e) => setAutoRefresh(e.target.checked)}
-              />
-              Auto refresh
-            </label>
+          <div className="row" style={{ gap: 8, background: '#f8fafc', border: '1px solid #eef2f7', borderRadius: 10, padding: '6px 10px', alignItems: 'center' }}>
+            <span style={{ fontSize: 12, color: '#111827' }}>Auto refresh</span>
+            <Switch size="small" checked={autoRefresh} onChange={(checked) => setAutoRefresh(checked)} />
             {autoRefresh && (
-              <select
+              <Select
+                size="small"
                 value={refreshInterval}
-                onChange={(e) => setRefreshInterval(Number(e.target.value))}
-                style={{ padding: '4px 8px', fontSize: 12, borderRadius: 8, border: '1px solid #e5e7eb', background: 'white' }}
-              >
-                <option value={500}>0.5s</option>
-                <option value={1000}>1s</option>
-                <option value={2000}>2s</option>
-                <option value={5000}>5s</option>
-              </select>
+                onChange={(val) => setRefreshInterval(Number(val))}
+                style={{ width: 90 }}
+                options={[
+                  { value: 1500, label: '1.5s' },
+                  { value: 2000, label: '2s' },
+                  { value: 5000, label: '5s' },
+                  { value: 10000, label: '10s' }
+                ]}
+              />
             )}
           </div>
-          <button className="btn" onClick={loadIOData} disabled={loading} style={{ borderRadius: 10 }}>
-            <RefreshCw size={16} className={loading ? 'spinning' : ''} style={{ marginRight: 8 }} />
+          <Button 
+            type="primary" 
+            icon={<ReloadOutlined spin={loading} />}
+            onClick={loadIOData} 
+            loading={loading}
+          >
             {loading ? 'Loading...' : 'Refresh'}
-          </button>
+          </Button>
         </div>
       </div>
 
       {loading && !ioData ? (
-        <div className="loading">Loading IO data...</div>
+        <div className="loading" style={{ display: 'flex', justifyContent: 'center', padding: 16 }}>
+          <Spin tip="Loading IO data..." />
+        </div>
       ) : ioData ? (
         <>
           <div className="io-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(1, minmax(0, 1fr))', gap: 12 }}>
@@ -262,28 +266,21 @@ const IOPanel = () => {
 
           <div className="row-between" style={{ margin: '24px 0 12px' }}>
             <h3 style={{ margin: 0 }}>
-              <Settings size={18} style={{ marginRight: '8px', verticalAlign: 'middle' }} />
+              <SettingOutlined style={{ marginRight: 8, verticalAlign: 'middle' }} />
               Input Control
             </h3>
-            <div>
-              <button
-                className={`btn ${selectedType === 'AIB' ? 'btn-success' : ''}`}
-                onClick={() => setSelectedType('AIB')}
-                style={{ fontSize: '12px', marginRight: '8px' }}
-              >
-                AIB
-              </button>
-              <button
-                className={`btn ${selectedType === 'SI' ? 'btn-success' : ''}`}
-                onClick={() => setSelectedType('SI')}
-                style={{ fontSize: '12px' }}
-              >
-                SI
-              </button>
-            </div>
+            <Segmented
+              size="middle"
+              value={selectedType}
+              onChange={(val) => setSelectedType(val)}
+              options={[
+                { label: 'AIB', value: 'AIB' },
+                { label: 'SI', value: 'SI' }
+              ]}
+            />
           </div>
 
-          <div style={{ background: '#ffffff', padding: 16, borderRadius: 12, border: '1px solid #eef2f7', boxShadow: '0 1px 2px rgba(16,24,40,0.04)' }}>
+          <Card bordered style={{ background: '#ffffff', borderRadius: 12, boxShadow: '0 1px 2px rgba(16,24,40,0.04)' }} bodyStyle={{ padding: 16 }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', marginBottom: '12px' }}>
               {controls[selectedType].map((value, index) => (
                 <div key={index} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -312,35 +309,30 @@ const IOPanel = () => {
                       justifyContent: 'center'
                     }}
                   >
-                    {value === 1 ? <Check size={20} /> : <X size={20} />}
+                    {value === 1 ? <CheckOutlined /> : <CloseOutlined />}
                   </button>
                 </div>
               ))}
             </div>
 
             <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-              <button className="btn btn-success" onClick={() => handleSetAll(selectedType, 1)} style={{ fontSize: '12px', padding: '5px 10px' }}>
+              <Button size="small" type="primary" onClick={() => handleSetAll(selectedType, 1)}>
                 Set All ON
-              </button>
-              <button className="btn btn-danger" onClick={() => handleSetAll(selectedType, 0)} style={{ fontSize: '12px', padding: '5px 10px' }}>
+              </Button>
+              <Button size="small" danger onClick={() => handleSetAll(selectedType, 0)}>
                 Set All OFF
-              </button>
-              <button className="btn btn-success" onClick={handleSend} disabled={sending} style={{ marginLeft: 'auto', borderRadius: 10 }}>
-                <Send size={16} style={{ marginRight: '8px' }} />
+              </Button>
+              <Button type="primary" onClick={handleSend} disabled={sending} style={{ marginLeft: 'auto', borderRadius: 10 }} icon={<SendOutlined />}>
                 {sending ? 'Sending...' : `Send ${selectedType} Changes`}
-              </button>
+              </Button>
             </div>
-          </div>
+          </Card>
 
           {message && (
-            <div className={`alert ${message.type === 'success' ? 'alert-success' : message.type === 'warning' ? 'alert-warning' : 'alert-error'}`} style={{ marginTop: '12px' }}>
-              {message.text}
-            </div>
+            <Alert style={{ marginTop: 12 }} type={message.type === 'warning' ? 'warning' : message.type === 'success' ? 'success' : 'error'} message={message.text} showIcon />
           )}
 
-          <div style={{ marginTop: 16, padding: 12, background: '#fff3cd', border: '1px solid #ffeaa7', borderRadius: 10, color: '#856404' }}>
-            <strong>Note:</strong> AIB and SI are controllable inputs. Only changed values are sent.
-          </div>
+          <Alert style={{ marginTop: 16 }} type="warning" message="Note" description="AIB and SI are controllable inputs. Only changed values are sent." showIcon />
         </>
       ) : (
         <div className="loading">No IO data available</div>

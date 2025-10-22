@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Card, Button, Row, Col, Typography, Tag, Empty, Modal } from 'antd';
+import { Card, Button, Row, Col, Typography, Tag, Empty } from 'antd';
 import { 
   ReloadOutlined, 
   DesktopOutlined, 
@@ -7,14 +7,11 @@ import {
   WifiOutlined, 
   GlobalOutlined, 
   BuildOutlined,
-  ThunderboltOutlined,
-  ExclamationCircleOutlined
+  ThunderboltOutlined
 } from '@ant-design/icons';
-import ioboxAPI from '../services/ioboxApi';
 
 const DeviceInfo = ({ deviceInfo, onRefresh }) => {
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isResetting, setIsResetting] = useState(false);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -41,7 +38,7 @@ const DeviceInfo = ({ deviceInfo, onRefresh }) => {
             onClick={handleRefresh} 
             loading={isRefreshing}
           >
-            Refresh
+            {isRefreshing ? 'Loading...' : 'Refresh'}
           </Button>
         }
       >
@@ -113,49 +110,14 @@ const DeviceInfo = ({ deviceInfo, onRefresh }) => {
         </Typography.Title>
       }
       extra={
-        <div style={{ display: 'flex', gap: 8 }}>
-          <Button 
-            danger
-            loading={isResetting}
-            onClick={() => {
-              Modal.confirm({
-                title: 'Factory Reset',
-                icon: <ExclamationCircleOutlined />,
-                content: 'This will reset the device to factory settings. The device may reboot and change its IP/network settings. Do you want to proceed?',
-                okText: 'Yes, reset',
-                okButtonProps: { danger: true },
-                cancelText: 'Cancel',
-                onOk: async () => {
-                  setIsResetting(true);
-                  try {
-                    const res = await ioboxAPI.factoryReset();
-                    Modal.success({
-                      title: 'Reset Command Sent',
-                      content: (res && res.message) || 'Factory reset initiated. The device may become temporarily unreachable.',
-                    });
-                  } catch (err) {
-                    Modal.error({
-                      title: 'Reset Failed',
-                      content: err.message,
-                    });
-                  } finally {
-                    setIsResetting(false);
-                  }
-                }
-              });
-            }}
-          >
-            Factory Reset
-          </Button>
-          <Button 
-            type="primary" 
-            icon={<ReloadOutlined spin={isRefreshing} />}
-            onClick={handleRefresh} 
-            loading={isRefreshing}
-          >
-            Refresh
-          </Button>
-        </div>
+        <Button 
+          type="primary" 
+          icon={<ReloadOutlined spin={isRefreshing} />}
+          onClick={handleRefresh} 
+          loading={isRefreshing}
+        >
+          {isRefreshing ? 'Loading...' : 'Refresh'}
+        </Button>
       }
     >
       <Row gutter={[16, 16]}>

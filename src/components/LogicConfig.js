@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Zap, RefreshCw, Save, Plus, Trash2, Check, X } from 'lucide-react';
+import { Button, Alert, Select, Spin, Card, Input, InputNumber } from 'antd';
+import { ThunderboltOutlined, ReloadOutlined, SaveOutlined, PlusOutlined, DeleteOutlined, CheckOutlined, CloseOutlined } from '@ant-design/icons';
 import ioboxAPI from '../services/ioboxApi';
 
 const LogicConfig = () => {
@@ -7,17 +8,7 @@ const LogicConfig = () => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState(null);
-  const [showAddRule, setShowAddRule] = useState(false);
-
-  const [newRule, setNewRule] = useState({
-    output: 'DO1',
-    enabled: true,
-    analogSetting: { min: 0, max: 100, type: 'in_range' },
-    conditions: [
-      { inputType: 'DI', inputIndex: 1, trigger: 'level', timer: 0 }
-    ],
-    logic: 'C1'
-  });
+  
 
   
 
@@ -33,15 +24,22 @@ const LogicConfig = () => {
     setMessage(null);
     try {
       const data = await ioboxAPI.getLogicConfig('all');
-      // Ensure backward compatibility: add default analogSetting if missing
-      const rulesWithDefaults = (data.rules || []).map(rule => {
-        const analog = rule.analogSetting || { min: 0, max: 100, type: 'in_range' };
+      const outputs = ['DO1','DO2','DO3','DO4'];
+      const incoming = Array.isArray(data.rules) ? data.rules : [];
+      const fixedRules = outputs.map(out => {
+        const existing = incoming.find(r => r && r.output === out);
+        const analog = (existing && existing.analogSetting) || { min: 0, max: 100, type: 'in_range' };
         return {
-          ...rule,
-          analogSetting: { ...analog, type: normalizeAnalogType(analog.type) }
+          output: out,
+          enabled: existing ? existing.enabled !== false : true,
+          analogSetting: { ...analog, type: normalizeAnalogType(analog.type) },
+          conditions: (existing && Array.isArray(existing.conditions) && existing.conditions.length > 0)
+            ? existing.conditions.slice(0, 5)
+            : [{ inputType: 'DI', inputIndex: 1, trigger: 'level', timer: 0 }],
+          logic: existing && existing.logic ? existing.logic : 'C1'
         };
       });
-      setLogicData(rulesWithDefaults);
+      setLogicData(fixedRules);
     } catch (error) {
       setMessage({ type: 'error', text: error.message });
     } finally {
@@ -58,7 +56,7 @@ const LogicConfig = () => {
     setMessage(null);
     
     try {
-      const rules = (logicData || []).map(rule => ({
+      const rules = (logicData || []).slice(0, 4).map(rule => ({
         ...rule,
         analogSetting: (() => {
           const a = rule.analogSetting || { min: 0, max: 100, type: 'in_range' };
@@ -82,9 +80,9 @@ const LogicConfig = () => {
           throw new Error(`Rule ${idx + 1}: Type must be 'in_range' or 'out_range'`);
         }
       }
-      const resp = await ioboxAPI.configureLogic(rules);
-      const applied = resp && typeof resp.applied_rules === 'number' ? resp.applied_rules : rules.length;
-      setMessage({ type: 'success', text: `Logic configuration applied successfully! ${applied} rules configured.` });
+      await ioboxAPI.configureLogic(rules);
+      const enabledCount = rules.filter(r => r && r.enabled !== false).length;
+      setMessage({ type: 'success', text: `Logic configuration applied successfully! ${enabledCount} rules configured.` });
     } catch (error) {
       setMessage({ type: 'error', text: error.message });
     } finally {
@@ -94,12 +92,9 @@ const LogicConfig = () => {
 
   const handleAddCondition = (ruleIndex) => {
     const updatedRules = [...logicData];
-    updatedRules[ruleIndex].conditions.push({
-      inputType: 'DI',
-      inputIndex: 1,
-      trigger: 'level',
-      timer: 0
-    });
+    const rule = updatedRules[ruleIndex];
+    if (!rule || rule.conditions.length >= 5) return;
+    rule.conditions.push({ inputType: 'DI', inputIndex: 1, trigger: 'level', timer: 0 });
     setLogicData(updatedRules);
   };
 
@@ -115,25 +110,7 @@ const LogicConfig = () => {
     setLogicData(updatedRules);
   };
 
-  const handleAddRule = () => {
-    const updatedRules = [...(logicData || []), { ...newRule }];
-    setLogicData(updatedRules);
-    setShowAddRule(false);
-    setNewRule({
-      output: 'DO1',
-      enabled: true,
-      analogSetting: { min: 0, max: 100, type: 'in_range' },
-      conditions: [
-        { inputType: 'DI', inputIndex: 1, trigger: 'level', timer: 0 }
-      ],
-      logic: 'C1'
-    });
-  };
-
-  const handleRemoveRule = (index) => {
-    const updatedRules = logicData.filter((_, i) => i !== index);
-    setLogicData(updatedRules);
-  };
+  // Fixed rules (DO1..DO4): no add/remove rule
 
   const handleToggleRule = (index) => {
     const updatedRules = [...logicData];
@@ -154,130 +131,109 @@ const LogicConfig = () => {
     { value: 'falling_edge', label: 'Falling Edge' }
   ];
 
-  const getOutputOptions = () => [
-    { value: 'DO1', label: 'Digital Output 1' },
-    { value: 'DO2', label: 'Digital Output 2' },
-    { value: 'DO3', label: 'Digital Output 3' },
-    { value: 'DO4', label: 'Digital Output 4' }
-  ];
+  // No output options needed for fixed rules
 
   const renderCondition = (condition, conditionIndex, ruleIndex) => (
-    <div key={conditionIndex} style={{ 
-      background: '#f8f9fa', 
-      padding: '15px', 
-      borderRadius: '6px', 
-      border: '1px solid #e9ecef',
-      marginBottom: '10px'
-    }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+    <Card key={conditionIndex} className="section-card" style={{ 
+      marginBottom: '10px',
+      background: '#fafbfd',
+      border: '1px solid #eef2f7'
+    }} size="small">
+      <div className="row-between" style={{ marginBottom: '10px' }}>
         <strong>Condition {conditionIndex + 1}</strong>
-        <button 
-          className="btn btn-danger"
+        <Button
+          danger
+          size="small"
           onClick={() => handleRemoveCondition(ruleIndex, conditionIndex)}
-          style={{ padding: '5px 10px', fontSize: '12px' }}
-        >
-          <Trash2 size={14} />
-        </button>
+          icon={<DeleteOutlined />}
+        />
       </div>
       
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '10px' }}>
         <div>
           <label style={{ fontSize: '12px', color: '#6c757d' }}>Input Type</label>
-          <select
+          <Select
+            size="small"
             value={condition.inputType}
-            onChange={(e) => handleUpdateCondition(ruleIndex, conditionIndex, 'inputType', e.target.value)}
-            className="form-control"
-            style={{ fontSize: '12px' }}
-          >
-            {getInputTypeOptions().map(option => (
-              <option key={option.value} value={option.value}>{option.label}</option>
-            ))}
-          </select>
+            onChange={(val) => handleUpdateCondition(ruleIndex, conditionIndex, 'inputType', val)}
+            options={getInputTypeOptions()}
+            style={{ width: '100%' }}
+          />
         </div>
         
         <div>
           <label style={{ fontSize: '12px', color: '#6c757d' }}>Input Index</label>
-          <input
-            type="number"
-            min="1"
-            max="4"
+          <InputNumber
+            size="small"
+            min={1}
+            max={condition.inputType === 'AI' ? 2 : 4}
             value={condition.inputIndex}
-            onChange={(e) => handleUpdateCondition(ruleIndex, conditionIndex, 'inputIndex', parseInt(e.target.value))}
-            className="form-control"
-            style={{ fontSize: '12px' }}
+            onChange={(val) => handleUpdateCondition(ruleIndex, conditionIndex, 'inputIndex', Number(val))}
+            style={{ width: '100%' }}
           />
         </div>
         
         <div>
           <label style={{ fontSize: '12px', color: '#6c757d' }}>Trigger</label>
-          <select
+          <Select
+            size="small"
             value={condition.trigger}
-            onChange={(e) => handleUpdateCondition(ruleIndex, conditionIndex, 'trigger', e.target.value)}
-            className="form-control"
-            style={{ fontSize: '12px' }}
-          >
-            {getTriggerOptions().map(option => (
-              <option key={option.value} value={option.value}>{option.label}</option>
-            ))}
-          </select>
+            onChange={(val) => handleUpdateCondition(ruleIndex, conditionIndex, 'trigger', val)}
+            options={getTriggerOptions()}
+            style={{ width: '100%' }}
+          />
         </div>
         
         <div>
-          <label style={{ fontSize: '12px', color: '#6c757d' }}>Timer (ms)</label>
-          <input
-            type="number"
-            min="0"
+          <label style={{ fontSize: '12px', color: '#6c757d' }}>Timer (s)</label>
+          <InputNumber
+            size="small"
+            min={0}
             value={condition.timer}
-            onChange={(e) => handleUpdateCondition(ruleIndex, conditionIndex, 'timer', parseInt(e.target.value))}
-            className="form-control"
-            style={{ fontSize: '12px' }}
+            onChange={(val) => handleUpdateCondition(ruleIndex, conditionIndex, 'timer', Number(val))}
+            style={{ width: '100%' }}
           />
         </div>
       </div>
-    </div>
+    </Card>
   );
 
   const renderRule = (rule, ruleIndex) => (
-    <div key={ruleIndex} style={{ 
-      background: rule.enabled ? '#f8f9fa' : '#f1f3f4', 
-      padding: '20px', 
-      borderRadius: '6px', 
-      border: `2px solid ${rule.enabled ? '#27ae60' : '#e74c3c'}`,
-      marginBottom: '20px',
-      opacity: rule.enabled ? 1 : 0.7
-    }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+    <Card
+      key={ruleIndex}
+      className="section-card"
+      style={{
+        border: `2px solid ${rule.enabled ? '#27ae60' : '#e74c3c'}`,
+        marginBottom: '20px',
+        opacity: rule.enabled ? 1 : 0.7
+      }}
+      size="small"
+    >
+      <div className="row-between" style={{ marginBottom: '15px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <h3 style={{ margin: 0, color: '#2c3e50' }}>{rule.output}</h3>
-          <button 
-            className={`btn ${rule.enabled ? 'btn-success' : 'btn-danger'}`}
+          <Button
+            size="small"
+            type={rule.enabled ? 'primary' : 'default'}
+            danger={!rule.enabled}
             onClick={() => handleToggleRule(ruleIndex)}
-            style={{ padding: '5px 10px', fontSize: '12px' }}
+            icon={rule.enabled ? <CheckOutlined /> : <CloseOutlined />}
           >
-            {rule.enabled ? <Check size={14} /> : <X size={14} />}
             {rule.enabled ? 'Enabled' : 'Disabled'}
-          </button>
+          </Button>
         </div>
-        <button 
-          className="btn btn-danger"
-          onClick={() => handleRemoveRule(ruleIndex)}
-          style={{ padding: '5px 10px', fontSize: '12px' }}
-        >
-          <Trash2 size={14} />
-        </button>
+        {/* No delete action for fixed rules */}
       </div>
 
       <div style={{ marginBottom: '15px' }}>
         <label style={{ fontSize: '12px', color: '#6c757d', marginBottom: '5px', display: 'block' }}>Logic Expression</label>
-        <input
-          type="text"
+        <Input
           value={rule.logic}
           onChange={(e) => {
             const updatedRules = [...logicData];
             updatedRules[ruleIndex].logic = e.target.value;
             setLogicData(updatedRules);
           }}
-          className="form-control"
           placeholder="C1 && C2"
           style={{ fontFamily: 'monospace', fontSize: '14px' }}
         />
@@ -289,49 +245,45 @@ const LogicConfig = () => {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '10px', marginTop: '10px' }}>
           <div>
             <label style={{ fontSize: '12px', color: '#6c757d' }}>Type</label>
-            <select
+            <Select
+              size="small"
               value={(rule.analogSetting && rule.analogSetting.type) || 'in_range'}
-              onChange={(e) => {
+              onChange={(val) => {
                 const updatedRules = [...logicData];
                 const current = updatedRules[ruleIndex].analogSetting || { min: 0, max: 100, type: 'in_range' };
-                updatedRules[ruleIndex].analogSetting = { ...current, type: e.target.value };
+                updatedRules[ruleIndex].analogSetting = { ...current, type: val };
                 setLogicData(updatedRules);
               }}
-              className="form-control"
-              style={{ fontSize: '12px' }}
-            >
-              <option value="in_range">in_range</option>
-              <option value="out_range">out_range</option>
-            </select>
+              options={[{ value: 'in_range', label: 'in_range' }, { value: 'out_range', label: 'out_range' }]}
+              style={{ width: '100%' }}
+            />
           </div>
           <div>
             <label style={{ fontSize: '12px', color: '#6c757d' }}>Min</label>
-            <input
-              type="number"
+            <InputNumber
+              size="small"
               value={(rule.analogSetting && rule.analogSetting.min) ?? 0}
-              onChange={(e) => {
+              onChange={(val) => {
                 const updatedRules = [...logicData];
                 const current = updatedRules[ruleIndex].analogSetting || { min: 0, max: 100, type: 'in_range' };
-                updatedRules[ruleIndex].analogSetting = { ...current, min: Number(e.target.value) };
+                updatedRules[ruleIndex].analogSetting = { ...current, min: Number(val) };
                 setLogicData(updatedRules);
               }}
-              className="form-control"
-              style={{ fontSize: '12px' }}
+              style={{ width: '100%' }}
             />
           </div>
           <div>
             <label style={{ fontSize: '12px', color: '#6c757d' }}>Max</label>
-            <input
-              type="number"
+            <InputNumber
+              size="small"
               value={(rule.analogSetting && rule.analogSetting.max) ?? 100}
-              onChange={(e) => {
+              onChange={(val) => {
                 const updatedRules = [...logicData];
                 const current = updatedRules[ruleIndex].analogSetting || { min: 0, max: 100, type: 'in_range' };
-                updatedRules[ruleIndex].analogSetting = { ...current, max: Number(e.target.value) };
+                updatedRules[ruleIndex].analogSetting = { ...current, max: Number(val) };
                 setLogicData(updatedRules);
               }}
-              className="form-control"
-              style={{ fontSize: '12px' }}
+              style={{ width: '100%' }}
             />
           </div>
         </div>
@@ -341,152 +293,78 @@ const LogicConfig = () => {
       </div>
 
       <div style={{ marginBottom: '15px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+        <div className="row-between" style={{ marginBottom: '10px' }}>
           <strong>Conditions</strong>
-          <button 
-            className="btn btn-success"
-            onClick={() => handleAddCondition(ruleIndex)}
-            style={{ padding: '5px 10px', fontSize: '12px' }}
-          >
-            <Plus size={14} style={{ marginRight: '5px' }} />
+          <Button size="small" type="primary" onClick={() => handleAddCondition(ruleIndex)} icon={<PlusOutlined />} disabled={rule.conditions.length >= 5}>
             Add Condition
-          </button>
+          </Button>
         </div>
         {rule.conditions.map((condition, conditionIndex) => 
           renderCondition(condition, conditionIndex, ruleIndex)
         )}
       </div>
-    </div>
+    </Card>
   );
 
   return (
     <div className="card">
       <div className='card-header'>
-        <h2>
-          <Zap size={20} style={{ marginRight: '10px', verticalAlign: 'middle' }} />
-          Logic Configuration
-        </h2>
-        <div className='row' style={{ gap: '10px' }}>
-          <button className="btn" onClick={loadLogicConfig} disabled={loading}>
-            <RefreshCw size={16} className={loading ? 'spinning' : ''} style={{ marginRight: '8px' }} />
-            {loading ? 'Loading...' : 'Refresh'}
-          </button>
-          <button 
-            className="btn btn-success" 
-            onClick={handleSaveLogic}
-            disabled={saving || !logicData}
-          >
-            <Save size={16} style={{ marginRight: '8px' }} />
-            {saving ? 'Saving...' : 'Save Logic'}
-          </button>
+        <div className="row" style={{ gap: 10 }}>
+          <div style={{ width: 36, height: 36, borderRadius: 8, background: '#e8f4fd', display: 'grid', placeItems: 'center' }}>
+            <ThunderboltOutlined style={{ fontSize: 18, color: '#0ea5e9' }} />
+          </div>
+          <div>
+            <h2 style={{ margin: 0, fontSize: 18, color: '#111827' }}>Logic Configuration</h2>
+            <div className="muted-text" style={{ fontSize: 12 }}>Configure 4 fixed rules (DO1–DO4)</div>
+          </div>
+        </div>
+        <div className='row' style={{ gap: 10 }}>
+          <Button onClick={loadLogicConfig} disabled={loading} icon={<ReloadOutlined />}> {loading ? 'Loading...' : 'Refresh'} </Button>
+          <Button type="primary" onClick={handleSaveLogic} disabled={saving || !logicData} icon={<SaveOutlined />}> {saving ? 'Saving...' : 'Save Logic'} </Button>
         </div>
       </div>
 
       {message && (
-        <div className={`alert ${message.type === 'success' ? 'alert-success' : 'alert-error'}`}>
-          {message.text}
-        </div>
+        <Alert style={{ margin: '0 0 16px 0' }} type={message.type === 'warning' ? 'warning' : message.type === 'success' ? 'success' : 'error'} message={message.text} showIcon />
       )}
 
       {loading && !logicData ? (
-        <div className="loading">Loading logic configuration...</div>
+        <div className="loading" style={{ display: 'flex', justifyContent: 'center', padding: 16 }}>
+          <Spin tip="Loading logic configuration..." />
+        </div>
       ) : (
         <>
           <div className='row-between' style={{ marginBottom: '20px' }}>
             <h3>Logic Rules</h3>
-            <button 
-              className="btn btn-success"
-              onClick={() => setShowAddRule(true)}
-            >
-              <Plus size={16} style={{ marginRight: '8px' }} />
-              Add Rule
-            </button>
           </div>
 
-          {showAddRule && (
-            <div style={{ 
-              background: '#e8f4fd', 
-              padding: '20px', 
-              borderRadius: '6px', 
-              border: '1px solid #bee5eb',
-              marginBottom: '20px'
-            }}>
-              <h4 style={{ margin: '0 0 15px 0', color: '#0c5460' }}>Add New Rule</h4>
-              
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', marginBottom: '15px' }}>
-                <div>
-                  <label style={{ fontSize: '12px', color: '#6c757d' }}>Output</label>
-                  <select
-                    value={newRule.output}
-                    onChange={(e) => setNewRule({...newRule, output: e.target.value})}
-                    className="form-control"
-                  >
-                    {getOutputOptions().map(option => (
-                      <option key={option.value} value={option.value}>{option.label}</option>
-                    ))}
-                  </select>
-                </div>
-                
-                <div>
-                  <label style={{ fontSize: '12px', color: '#6c757d' }}>Logic Expression</label>
-                  <input
-                    type="text"
-                    value={newRule.logic}
-                    onChange={(e) => setNewRule({...newRule, logic: e.target.value})}
-                    className="form-control"
-                    placeholder="C1 && C2"
-                    style={{ fontFamily: 'monospace' }}
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button className="btn btn-success" onClick={handleAddRule}>
-                  <Check size={16} style={{ marginRight: '8px' }} />
-                  Add Rule
-                </button>
-                <button className="btn" onClick={() => setShowAddRule(false)}>
-                  <X size={16} style={{ marginRight: '8px' }} />
-                  Cancel
-                </button>
-              </div>
-            </div>
-          )}
+          {/* No Add Rule section for fixed rules */}
 
           {logicData && logicData.length > 0 ? (
-            logicData.map((rule, index) => renderRule(rule, index))
+            logicData.slice(0, 4).map((rule, index) => renderRule(rule, index))
           ) : (
-            <div style={{ 
-              textAlign: 'center', 
-              padding: '40px', 
-              color: '#6c757d',
-              background: '#f8f9fa',
-              borderRadius: '6px',
-              border: '1px solid #e9ecef'
-            }}>
-              <Zap size={48} style={{ marginBottom: '15px', opacity: 0.5 }} />
+            <Card className="section-card" style={{ textAlign: 'center', color: '#6c757d' }} size="small">
+              <ThunderboltOutlined style={{ fontSize: 48, marginBottom: 15, opacity: 0.5 }} />
               <p>No logic rules configured</p>
-              <p style={{ fontSize: '14px' }}>Click "Add Rule" to create your first automation rule</p>
-            </div>
+              <p style={{ fontSize: '14px' }}>There are 4 fixed rules (DO1–DO4). Configure them below.</p>
+            </Card>
           )}
 
-          <div style={{ 
-            marginTop: '20px', 
-            padding: '15px', 
-            background: '#fff3cd', 
-            border: '1px solid #ffeaa7', 
-            borderRadius: '4px',
-            color: '#856404'
-          }}>
-            <strong>Logic Configuration Help:</strong>
-            <ul style={{ margin: '10px 0 0 20px' }}>
-              <li><strong>Conditions:</strong> Define input triggers (level, rising_edge, falling_edge)</li>
-              <li><strong>Logic Expression:</strong> Use C1, C2, etc. for conditions. Operators: && (AND), || (OR), ! (NOT)</li>
-              <li><strong>Timer:</strong> Delay in milliseconds before condition is evaluated</li>
-              <li><strong>Analog Setting Type:</strong> Accepted values are <code>in_range</code> and <code>out_range</code>. The app also normalizes common variants like <code>inrange</code>/<code>outrange</code>.</li>
-              <li><strong>Example:</strong> "C1 && C2" means both condition 1 AND condition 2 must be true</li>
-            </ul>
-          </div>
+          <Alert style={{ marginTop: 20 }}
+            type="warning"
+            message="Logic Configuration Help"
+            description={
+              <ul style={{ margin: '10px 0 0 20px' }}>
+                <li><strong>Conditions:</strong> Define input triggers (level, rising_edge, falling_edge). AI supports 2 channels, others support 4 channels</li>
+                <li><strong>Logic Expression:</strong> Use C1, C2, etc. for conditions. Operators: && (AND), || (OR), ! (NOT)</li>
+                <li><strong>Timer:</strong> Delay in seconds before condition is evaluated</li>
+                <li><strong>Analog Setting Type:</strong> Accepted values are <code>in_range</code> and <code>out_range</code>. The app also normalizes common variants like <code>inrange</code>/<code>outrange</code>.</li>
+                <li><strong>Limits:</strong> Max 5 conditions per rule; 4 fixed rules (DO1–DO4)</li>
+                <li><strong>Example:</strong> "C1 && C2" means both condition 1 AND condition 2 must be true</li>
+              </ul>
+            }
+            showIcon
+          />
         </>
       )}
     </div>

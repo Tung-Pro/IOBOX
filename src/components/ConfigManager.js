@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import { Card, Button, Upload, message, Alert, Typography, Row, Col, Divider, Tag, Space } from 'antd';
+import { Card, Button, Upload, message, Alert, Typography, Row, Col, Divider, Tag, Space, Modal } from 'antd';
 import { 
   DownloadOutlined, 
   UploadOutlined, 
   FileTextOutlined, 
   CheckCircleOutlined,
   ExclamationCircleOutlined,
-  InfoCircleOutlined
+  InfoCircleOutlined,
+  ReloadOutlined
 } from '@ant-design/icons';
 import ioboxAPI from '../services/ioboxApi';
 
@@ -18,6 +19,7 @@ const ConfigManager = () => {
   const [importing, setImporting] = useState(false);
   const [configData, setConfigData] = useState(null);
   const [lastExportTime, setLastExportTime] = useState(null);
+  const [isResetting, setIsResetting] = useState(false);
 
   // Thu thập tất cả cấu hình từ thiết bị
   const collectAllConfig = async () => {
@@ -159,6 +161,35 @@ const ConfigManager = () => {
     }
   };
 
+  // Factory Reset
+  const handleFactoryReset = () => {
+    Modal.confirm({
+      title: 'Factory Reset',
+      icon: <ExclamationCircleOutlined />,
+      content: 'This will reset the device to factory settings. The device may reboot and change its IP/network settings. Do you want to proceed?',
+      okText: 'Yes, reset',
+      okButtonProps: { danger: true },
+      cancelText: 'Cancel',
+      onOk: async () => {
+        setIsResetting(true);
+        try {
+          const res = await ioboxAPI.factoryReset();
+          Modal.success({
+            title: 'Reset Command Sent',
+            content: (res && res.message) || 'Factory reset initiated. The device may become temporarily unreachable.',
+          });
+        } catch (err) {
+          Modal.error({
+            title: 'Reset Failed',
+            content: err.message,
+          });
+        } finally {
+          setIsResetting(false);
+        }
+      }
+    });
+  };
+
   // Hiển thị thông tin cấu hình
   const renderConfigInfo = () => {
     if (!configData) return null;
@@ -275,7 +306,7 @@ const ConfigManager = () => {
         />
 
         <Row gutter={[16, 16]}>
-          <Col xs={24} md={12}>
+          <Col xs={24} md={8}>
             <Card size="small" title="Export Configuration">
               <Text type="secondary" style={{ display: 'block', marginBottom: '16px' }}>
                 Export current device configuration including network settings, IO status, and logic rules.
@@ -300,7 +331,7 @@ const ConfigManager = () => {
             </Card>
           </Col>
           
-          <Col xs={24} md={12}>
+          <Col xs={24} md={8}>
             <Card size="small" title="Import Configuration">
               <Text type="secondary" style={{ display: 'block', marginBottom: '16px' }}>
                 Import a configuration file to apply logic rules only. Network settings will be ignored.
@@ -320,6 +351,24 @@ const ConfigManager = () => {
                   {importing ? 'Importing...' : 'Select Configuration File'}
                 </Button>
               </Upload>
+            </Card>
+          </Col>
+
+          <Col xs={24} md={8}>
+            <Card size="small" title="Factory Reset">
+              <Text type="secondary" style={{ display: 'block', marginBottom: '16px' }}>
+                Reset the device to factory settings. This will clear all configurations and may change network settings.
+              </Text>
+              
+              <Button 
+                danger
+                icon={<ReloadOutlined />}
+                onClick={handleFactoryReset}
+                loading={isResetting}
+                block
+              >
+                {isResetting ? 'Resetting...' : 'Factory Reset'}
+              </Button>
             </Card>
           </Col>
         </Row>

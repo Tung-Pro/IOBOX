@@ -179,7 +179,7 @@ const NetworkConfig = () => {
           onClick={loadNetworkConfig} 
           loading={loading}
         >
-          Refresh
+          {loading ? 'Loading...' : 'Refresh'}
         </Button>
       }
     >
