@@ -32,6 +32,7 @@ const LogicConfig = () => {
         return {
           output: out,
           enabled: existing ? existing.enabled !== false : true,
+          delay: existing && existing.delay !== undefined ? Number(existing.delay) : 0,
           analogSetting: { ...analog, type: normalizeAnalogType(analog.type) },
           conditions: (existing && Array.isArray(existing.conditions) && existing.conditions.length > 0)
             ? existing.conditions.slice(0, 5)
@@ -58,18 +59,21 @@ const LogicConfig = () => {
     try {
       const rules = (logicData || []).slice(0, 4).map(rule => ({
         ...rule,
+        delay: rule.delay !== undefined ? Number(rule.delay) || 0 : 0,
         analogSetting: (() => {
           const a = rule.analogSetting || { min: 0, max: 100, type: 'in_range' };
           return { ...a, type: normalizeAnalogType(a.type) };
         })()
       }));
 
-      // Basic validation for analogSetting
+      // Basic validation for analogSetting and delay
       for (const [idx, rule] of rules.entries()) {
         const a = rule.analogSetting || { min: 0, max: 100, type: 'in_range' };
         const min = Number(a.min);
         const max = Number(a.max);
         const type = normalizeAnalogType(a.type);
+        const delay = Number(rule.delay);
+        
         if (!Number.isFinite(min) || !Number.isFinite(max)) {
           throw new Error(`Rule ${idx + 1}: Min/Max must be valid numbers`);
         }
@@ -78,6 +82,9 @@ const LogicConfig = () => {
         }
         if (type !== 'in_range' && type !== 'out_range') {
           throw new Error(`Rule ${idx + 1}: Type must be 'in_range' or 'out_range'`);
+        }
+        if (!Number.isFinite(delay) || delay < 0) {
+          throw new Error(`Rule ${idx + 1}: Delay must be a valid number >= 0`);
         }
       }
       await ioboxAPI.configureLogic(rules);
@@ -241,6 +248,22 @@ const LogicConfig = () => {
       </div>
 
       <div style={{ marginBottom: '15px' }}>
+        <label style={{ fontSize: '12px', color: '#6c757d', marginBottom: '5px', display: 'block' }}>Output Delay (seconds)</label>
+        <InputNumber
+          min={0}
+          value={rule.delay !== undefined ? rule.delay : 0}
+          onChange={(val) => {
+            const updatedRules = [...logicData];
+            updatedRules[ruleIndex].delay = Number(val) || 0;
+            setLogicData(updatedRules);
+          }}
+          style={{ width: '100%' }}
+          placeholder="0"
+        />
+        <small style={{ color: '#6c757d' }}>Delay in seconds before output turns ON. Output will only turn ON if logic result is still 1 after the delay period.</small>
+      </div>
+
+      <div style={{ marginBottom: '15px' }}>
         <strong>Analog Setting</strong>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '10px', marginTop: '10px' }}>
           <div>
@@ -358,6 +381,7 @@ const LogicConfig = () => {
                 <li><strong>Conditions:</strong> Define input triggers (level, rising_edge, falling_edge). AI supports 2 channels, others support 4 channels</li>
                 <li><strong>Logic Expression:</strong> Use C1, C2, etc. for conditions. Operators: && (AND), || (OR), ! (NOT)</li>
                 <li><strong>Timer:</strong> Delay in seconds before condition is evaluated</li>
+                <li><strong>Output Delay:</strong> Delay in seconds before output turns ON. Output will only turn ON if logic result is still 1 after the delay period</li>
                 <li><strong>Analog Setting Type:</strong> Accepted values are <code>in_range</code> and <code>out_range</code>. The app also normalizes common variants like <code>inrange</code>/<code>outrange</code>.</li>
                 <li><strong>Limits:</strong> Max 5 conditions per rule; 4 fixed rules (DO1–DO4)</li>
                 <li><strong>Example:</strong> "C1 && C2" means both condition 1 AND condition 2 must be true</li>
