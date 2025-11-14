@@ -3,7 +3,12 @@ import { Modal, Form, Input, Button, Alert, Space } from 'antd';
 import { WifiOutlined, CheckOutlined, DownloadOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
 
 const ConnectionSettings = ({ onClose, onIPChange, currentIP }) => {
-  const [ip, setIP] = useState(currentIP || '');
+  const extractIPFromURL = (url = '') => {
+    if (!url) return '';
+    return url.trim().replace(/^https?:\/\//, '').split('/')[0];
+  };
+
+  const [ip, setIP] = useState(extractIPFromURL(currentIP));
   const [isTesting, setIsTesting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [testResult, setTestResult] = useState(null);

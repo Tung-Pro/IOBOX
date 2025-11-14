@@ -2,7 +2,9 @@ import axios from 'axios';
 
 class IOBoxAPI {
   constructor(baseURL = '') {
-    this.baseURL = baseURL;
+    // Load from localStorage if available, otherwise use provided baseURL
+    const savedURL = localStorage.getItem('iobox_base_url') || baseURL;
+    this.baseURL = savedURL;
     this.api = axios.create({
       baseURL: this.baseURL,
       timeout: 10000, // Increased timeout for HTTPS
@@ -136,6 +138,12 @@ class IOBoxAPI {
   updateBaseURL(newURL) {
     this.baseURL = newURL;
     this.api.defaults.baseURL = newURL;
+    // Save to localStorage for persistence across page reloads
+    if (newURL) {
+      localStorage.setItem('iobox_base_url', newURL);
+    } else {
+      localStorage.removeItem('iobox_base_url');
+    }
   }
 
   getBaseURL() {
