@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Modal, Form, Input, Button, Alert, Space } from 'antd';
-import { WifiOutlined, CheckOutlined, DownloadOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
+import { WifiOutlined, CheckOutlined, DownloadOutlined, ExclamationCircleOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
 
 const ConnectionSettings = ({ onClose, onIPChange, currentIP }) => {
   const extractIPFromURL = (url = '') => {
@@ -94,6 +94,13 @@ const ConnectionSettings = ({ onClose, onIPChange, currentIP }) => {
     }
   };
 
+  const handleOpenInBrowser = () => {
+    const testURL = getTestURL();
+    if (testURL && testURL !== '#') {
+      window.open(testURL, '_blank', 'noopener,noreferrer');
+    }
+  };
+
   const isInputValid = isValidInput(ip);
 
   return (
@@ -135,7 +142,14 @@ const ConnectionSettings = ({ onClose, onIPChange, currentIP }) => {
           />
         )}
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginBottom: 16 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <Button
+            icon={<SafetyCertificateOutlined />}
+            onClick={handleOpenInBrowser}
+            disabled={!isInputValid}
+          >
+            Trust Certificate
+          </Button>
           <Button
             onClick={handleTest}
             disabled={isTesting || !isInputValid}
@@ -167,20 +181,7 @@ const ConnectionSettings = ({ onClose, onIPChange, currentIP }) => {
             <li>Ensure IOBOX is powered on and connected to the network</li>
             <li>Verify web interface is enabled with HTTPS support</li>
             <li>Make sure both devices are on the same network</li>
-            <li>Test directly in browser:{' '}
-              {isInputValid ? (
-                <a 
-                  href={getTestURL()} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  style={{ color: '#1677ff', wordBreak: 'break-all' }}
-                >
-                  {getTestURL()}
-                </a>
-              ) : (
-                <span style={{ color: '#999' }}>https://&lt;device-ip&gt;/api/iobox/info</span>
-              )}
-            </li>
+            <li>Use the "Trust Certificate" button above to open the API endpoint in browser and accept the certificate</li>
             <li>Accept self-signed SSL certificates if prompted</li>
           </ul>
         </div>

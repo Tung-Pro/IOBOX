@@ -285,7 +285,7 @@ const NetworkConfig = () => {
                 </>
               )}
 
-              <Form.Item>
+              <Form.Item style={{ marginBottom: 0 }}>
                 <Button 
                   type="primary" 
                   icon={<SaveOutlined />}
