@@ -27,6 +27,13 @@ const IOPanel = () => {
     }
   }, []);
 
+  // Load saved auto-refresh settings (persisted via ioboxAPI)
+  useEffect(() => {
+    const saved = ioboxAPI.getAutoRefreshSettings({ autoRefresh: false, refreshInterval: 1500 });
+    setAutoRefresh(Boolean(saved.autoRefresh));
+    setRefreshInterval(Number(saved.refreshInterval) || 1500);
+  }, []);
+
   useEffect(() => {
     loadIOData();
   }, [loadIOData]);
@@ -127,22 +134,33 @@ const IOPanel = () => {
         </div>
 
         {type === 'AI' ? (
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-              <span style={{ fontSize: 12, color: '#6b7280' }}>AI1</span>
-              <Dot color={color} />
-              <span style={{ fontFamily: 'monospace', color: '#111827', fontWeight: 600 }}>
-                {Array.isArray(values) ? values[0]?.toFixed?.(2) ?? values[0] : (typeof values === 'number' ? values.toFixed(2) : values)}
-              </span>
-            </div>
-            <div style={{ height: 8, background: '#f3f4f6', borderRadius: 9999 }}>
-              <div style={{
-                height: 8,
-                width: `${Math.min(100, Math.max(0, (Array.isArray(values) ? Number(values[0]) : Number(values)) * 20))}%`,
-                background: color,
-                borderRadius: 9999
-              }} />
-            </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10 }}>
+            {[0, 1].map((idx) => {
+              const val = Array.isArray(values) ? values[idx] : (idx === 0 ? values : null);
+              const vNum = typeof val === 'number' ? val : Number(val);
+              const barWidth = Number.isFinite(vNum)
+                ? Math.min(100, Math.max(0, vNum * 20))
+                : 0;
+              return (
+                <div key={idx}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                    <span style={{ fontSize: 12, color: '#6b7280' }}>{`AI${idx + 1}`}</span>
+                    <Dot color={color} />
+                    <span style={{ fontFamily: 'monospace', color: '#111827', fontWeight: 600 }}>
+                      {Number.isFinite(vNum) ? vNum.toFixed(2) : '—'}
+                    </span>
+                  </div>
+                  <div style={{ height: 8, background: '#f3f4f6', borderRadius: 9999 }}>
+                    <div style={{
+                      height: 8,
+                      width: `${barWidth}%`,
+                      background: color,
+                      borderRadius: 9999
+                    }} />
+                  </div>
+                </div>
+              );
+            })}
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 10 }}>
@@ -222,12 +240,23 @@ const IOPanel = () => {
         <div className="row" style={{ gap: 10 }}>
           <div className="row" style={{ gap: 8, background: '#f8fafc', border: '1px solid #eef2f7', borderRadius: 10, padding: '6px 10px', alignItems: 'center' }}>
             <span style={{ fontSize: 12, color: '#111827' }}>Auto refresh</span>
-            <Switch size="small" checked={autoRefresh} onChange={(checked) => setAutoRefresh(checked)} />
+            <Switch
+              size="small"
+              checked={autoRefresh}
+              onChange={(checked) => {
+                setAutoRefresh(checked);
+                ioboxAPI.setAutoRefreshEnabled(checked);
+              }}
+            />
             {autoRefresh && (
               <Select
                 size="small"
                 value={refreshInterval}
-                onChange={(val) => setRefreshInterval(Number(val))}
+                onChange={(val) => {
+                  const num = Number(val);
+                  setRefreshInterval(num);
+                  ioboxAPI.setAutoRefreshInterval(num);
+                }}
                 style={{ width: 90 }}
                 options={[
                   { value: 1500, label: '1.5s' },
@@ -256,7 +285,7 @@ const IOPanel = () => {
       ) : ioData ? (
         <>
           <div className="io-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(1, minmax(0, 1fr))', gap: 12 }}>
-            {renderIOGroup('AI', ioData.AI, 'Analog Input', '1 channel - Voltage/Current measurement')}
+            {renderIOGroup('AI', ioData.AI, 'Analog Input', '2 channels - Voltage/Current measurement')}
             {renderIOGroup('DI', ioData.DI, 'Digital Input', '4 channels - Digital input states')}
             {renderIOGroup('AIB', ioData.AIB, 'AIBox Input', '4 channels - Click to toggle')}
             {renderIOGroup('SI', ioData.SI, 'System Input', '4 channels - Click to toggle')}

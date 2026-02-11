@@ -8,9 +8,6 @@ const LogicConfig = () => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState(null);
-  
-
-  
 
   const normalizeAnalogType = (raw) => {
     const t = String(raw || '').toLowerCase().trim();
@@ -18,6 +15,12 @@ const LogicConfig = () => {
     if (t === 'out_range' || t === 'outrange' || t === 'out' || t === 'out-range') return 'out_range';
     return 'in_range';
   };
+
+  const createDefaultAnalog = () => ({
+    min: 0,
+    max: 100,
+    type: 'in_range'
+  });
 
   const loadLogicConfig = useCallback(async () => {
     setLoading(true);
@@ -28,12 +31,33 @@ const LogicConfig = () => {
       const incoming = Array.isArray(data.rules) ? data.rules : [];
       const fixedRules = outputs.map(out => {
         const existing = incoming.find(r => r && r.output === out);
-        const analog = (existing && existing.analogSetting) || { min: 0, max: 100, type: 'in_range' };
+        const rawAnalog = existing && (existing.analogSettings || existing.analogSetting);
+
+        // Normalize to array of 2 analog settings (for AI1 & AI2)
+        let analogSettings;
+        if (Array.isArray(rawAnalog) && rawAnalog.length > 0) {
+          analogSettings = rawAnalog.slice(0, 2).map(a => {
+            const base = createDefaultAnalog();
+            const merged = { ...base, ...(a || {}) };
+            return { ...merged, type: normalizeAnalogType(merged.type) };
+          });
+        } else {
+          const single = rawAnalog || createDefaultAnalog();
+          const merged = { ...createDefaultAnalog(), ...(single || {}) };
+          const normalized = { ...merged, type: normalizeAnalogType(merged.type) };
+          analogSettings = [normalized, { ...normalized }];
+        }
+
+        // Ensure we always have exactly 2 entries
+        while (analogSettings.length < 2) {
+          analogSettings.push(createDefaultAnalog());
+        }
+
         return {
           output: out,
           enabled: existing ? existing.enabled !== false : true,
           delay: existing && existing.delay !== undefined ? Number(existing.delay) : 0,
-          analogSetting: { ...analog, type: normalizeAnalogType(analog.type) },
+          analogSettings,
           conditions: (existing && Array.isArray(existing.conditions) && existing.conditions.length > 0)
             ? existing.conditions.slice(0, 5)
             : [{ inputType: 'DI', inputIndex: 1, trigger: 'level', timer: 0 }],
@@ -57,32 +81,52 @@ const LogicConfig = () => {
     setMessage(null);
     
     try {
-      const rules = (logicData || []).slice(0, 4).map(rule => ({
-        ...rule,
-        delay: rule.delay !== undefined ? Number(rule.delay) || 0 : 0,
-        analogSetting: (() => {
-          const a = rule.analogSetting || { min: 0, max: 100, type: 'in_range' };
-          return { ...a, type: normalizeAnalogType(a.type) };
-        })()
-      }));
+      const rules = (logicData || []).slice(0, 4).map(rule => {
+        // Normalize analog settings to array of 2 before sending
+        const raw = Array.isArray(rule.analogSettings) && rule.analogSettings.length > 0
+          ? rule.analogSettings
+          : (rule.analogSetting ? [rule.analogSetting] : []);
 
-      // Basic validation for analogSetting and delay
+        let analogSettings = raw.slice(0, 2).map(a => {
+          const base = createDefaultAnalog();
+          const merged = { ...base, ...(a || {}) };
+          return { ...merged, type: normalizeAnalogType(merged.type) };
+        });
+
+        while (analogSettings.length < 2) {
+          analogSettings.push(createDefaultAnalog());
+        }
+
+        return {
+          ...rule,
+          delay: rule.delay !== undefined ? Number(rule.delay) || 0 : 0,
+          analogSettings
+        };
+      });
+
+      // Basic validation for analogSettings and delay
       for (const [idx, rule] of rules.entries()) {
-        const a = rule.analogSetting || { min: 0, max: 100, type: 'in_range' };
-        const min = Number(a.min);
-        const max = Number(a.max);
-        const type = normalizeAnalogType(a.type);
+        const analogs = Array.isArray(rule.analogSettings) && rule.analogSettings.length > 0
+          ? rule.analogSettings
+          : [createDefaultAnalog()];
+
+        analogs.forEach((a, aiIndex) => {
+          const min = Number(a.min);
+          const max = Number(a.max);
+          const type = normalizeAnalogType(a.type);
+
+          if (!Number.isFinite(min) || !Number.isFinite(max)) {
+            throw new Error(`Rule ${idx + 1} (AI${aiIndex + 1}): Min/Max must be valid numbers`);
+          }
+          if (min > max) {
+            throw new Error(`Rule ${idx + 1} (AI${aiIndex + 1}): Min cannot be greater than Max`);
+          }
+          if (type !== 'in_range' && type !== 'out_range') {
+            throw new Error(`Rule ${idx + 1} (AI${aiIndex + 1}): Type must be 'in_range' or 'out_range'`);
+          }
+        });
+
         const delay = Number(rule.delay);
-        
-        if (!Number.isFinite(min) || !Number.isFinite(max)) {
-          throw new Error(`Rule ${idx + 1}: Min/Max must be valid numbers`);
-        }
-        if (min > max) {
-          throw new Error(`Rule ${idx + 1}: Min cannot be greater than Max`);
-        }
-        if (type !== 'in_range' && type !== 'out_range') {
-          throw new Error(`Rule ${idx + 1}: Type must be 'in_range' or 'out_range'`);
-        }
         if (!Number.isFinite(delay) || delay < 0) {
           throw new Error(`Rule ${idx + 1}: Delay must be a valid number >= 0`);
         }
@@ -264,54 +308,85 @@ const LogicConfig = () => {
       </div>
 
       <div style={{ marginBottom: '15px' }}>
-        <strong>Analog Setting</strong>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '10px', marginTop: '10px' }}>
-          <div>
-            <label style={{ fontSize: '12px', color: '#6c757d' }}>Type</label>
-            <Select
-              size="small"
-              value={(rule.analogSetting && rule.analogSetting.type) || 'in_range'}
-              onChange={(val) => {
-                const updatedRules = [...logicData];
-                const current = updatedRules[ruleIndex].analogSetting || { min: 0, max: 100, type: 'in_range' };
-                updatedRules[ruleIndex].analogSetting = { ...current, type: val };
-                setLogicData(updatedRules);
-              }}
-              options={[{ value: 'in_range', label: 'in_range' }, { value: 'out_range', label: 'out_range' }]}
-              style={{ width: '100%' }}
-            />
-          </div>
-          <div>
-            <label style={{ fontSize: '12px', color: '#6c757d' }}>Min</label>
-            <InputNumber
-              size="small"
-              value={(rule.analogSetting && rule.analogSetting.min) ?? 0}
-              onChange={(val) => {
-                const updatedRules = [...logicData];
-                const current = updatedRules[ruleIndex].analogSetting || { min: 0, max: 100, type: 'in_range' };
-                updatedRules[ruleIndex].analogSetting = { ...current, min: Number(val) };
-                setLogicData(updatedRules);
-              }}
-              style={{ width: '100%' }}
-            />
-          </div>
-          <div>
-            <label style={{ fontSize: '12px', color: '#6c757d' }}>Max</label>
-            <InputNumber
-              size="small"
-              value={(rule.analogSetting && rule.analogSetting.max) ?? 100}
-              onChange={(val) => {
-                const updatedRules = [...logicData];
-                const current = updatedRules[ruleIndex].analogSetting || { min: 0, max: 100, type: 'in_range' };
-                updatedRules[ruleIndex].analogSetting = { ...current, max: Number(val) };
-                setLogicData(updatedRules);
-              }}
-              style={{ width: '100%' }}
-            />
-          </div>
+        <strong>Analog Settings (per AI channel)</strong>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px', marginTop: '10px' }}>
+          {[0, 1].map((aiIndex) => {
+            const analog = (rule.analogSettings && rule.analogSettings[aiIndex]) || createDefaultAnalog();
+            return (
+              <Card
+                key={aiIndex}
+                size="small"
+                style={{ border: '1px solid #eef2f7', background: '#f9fafb' }}
+              >
+                <div style={{ marginBottom: 8, fontSize: 12, color: '#6c757d', fontWeight: 600 }}>
+                  {`AI${aiIndex + 1} threshold`}
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '8px' }}>
+                  <div>
+                    <label style={{ fontSize: '12px', color: '#6c757d' }}>Type</label>
+                    <Select
+                      size="small"
+                      value={analog.type || 'in_range'}
+                      onChange={(val) => {
+                        const updatedRules = [...logicData];
+                        const list = Array.isArray(updatedRules[ruleIndex].analogSettings)
+                          ? [...updatedRules[ruleIndex].analogSettings]
+                          : [];
+                        const current = list[aiIndex] || createDefaultAnalog();
+                        list[aiIndex] = { ...current, type: val };
+                        updatedRules[ruleIndex].analogSettings = list;
+                        setLogicData(updatedRules);
+                      }}
+                      options={[
+                        { value: 'in_range', label: 'in_range' },
+                        { value: 'out_range', label: 'out_range' }
+                      ]}
+                      style={{ width: '100%' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '12px', color: '#6c757d' }}>Min</label>
+                    <InputNumber
+                      size="small"
+                      value={analog.min ?? 0}
+                      onChange={(val) => {
+                        const updatedRules = [...logicData];
+                        const list = Array.isArray(updatedRules[ruleIndex].analogSettings)
+                          ? [...updatedRules[ruleIndex].analogSettings]
+                          : [];
+                        const current = list[aiIndex] || createDefaultAnalog();
+                        list[aiIndex] = { ...current, min: Number(val) };
+                        updatedRules[ruleIndex].analogSettings = list;
+                        setLogicData(updatedRules);
+                      }}
+                      style={{ width: '100%' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '12px', color: '#6c757d' }}>Max</label>
+                    <InputNumber
+                      size="small"
+                      value={analog.max ?? 100}
+                      onChange={(val) => {
+                        const updatedRules = [...logicData];
+                        const list = Array.isArray(updatedRules[ruleIndex].analogSettings)
+                          ? [...updatedRules[ruleIndex].analogSettings]
+                          : [];
+                        const current = list[aiIndex] || createDefaultAnalog();
+                        list[aiIndex] = { ...current, max: Number(val) };
+                        updatedRules[ruleIndex].analogSettings = list;
+                        setLogicData(updatedRules);
+                      }}
+                      style={{ width: '100%' }}
+                    />
+                  </div>
+                </div>
+              </Card>
+            );
+          })}
         </div>
         <small style={{ color: '#6c757d' }}>
-          in_range: true when AI is within [min, max]; out_range: true when AI is outside.  
+          in_range: true when each AI channel is within [min, max]; out_range: true when it is outside.
         </small>
       </div>
 

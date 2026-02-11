@@ -1,9 +1,15 @@
 import axios from 'axios';
 
+const STORAGE_KEYS = {
+  BASE_URL: 'iobox_base_url',
+  AUTO_REFRESH: 'iobox_auto_refresh',
+  AUTO_REFRESH_INTERVAL: 'iobox_auto_refresh_interval'
+};
+
 class IOBoxAPI {
   constructor(baseURL = '') {
     // Load from localStorage if available, otherwise use provided baseURL
-    const savedURL = localStorage.getItem('iobox_base_url') || baseURL;
+    const savedURL = localStorage.getItem(STORAGE_KEYS.BASE_URL) || baseURL;
     this.baseURL = savedURL;
     this.api = axios.create({
       baseURL: this.baseURL,
@@ -140,14 +146,53 @@ class IOBoxAPI {
     this.api.defaults.baseURL = newURL;
     // Save to localStorage for persistence across page reloads
     if (newURL) {
-      localStorage.setItem('iobox_base_url', newURL);
+      localStorage.setItem(STORAGE_KEYS.BASE_URL, newURL);
     } else {
-      localStorage.removeItem('iobox_base_url');
+      localStorage.removeItem(STORAGE_KEYS.BASE_URL);
     }
   }
 
   getBaseURL() {
     return this.baseURL;
+  }
+
+  // Persisted UI settings
+  getAutoRefreshSettings(defaults = { autoRefresh: false, refreshInterval: 1500 }) {
+    try {
+      const savedAuto = localStorage.getItem(STORAGE_KEYS.AUTO_REFRESH);
+      const savedInterval = localStorage.getItem(STORAGE_KEYS.AUTO_REFRESH_INTERVAL);
+
+      const autoRefresh = savedAuto === null ? Boolean(defaults.autoRefresh) : savedAuto === 'true';
+      const intervalNum = savedInterval === null ? Number(defaults.refreshInterval) : Number(savedInterval);
+
+      return {
+        autoRefresh,
+        refreshInterval: Number.isFinite(intervalNum) ? intervalNum : Number(defaults.refreshInterval) || 1500
+      };
+    } catch (e) {
+      return {
+        autoRefresh: Boolean(defaults.autoRefresh),
+        refreshInterval: Number(defaults.refreshInterval) || 1500
+      };
+    }
+  }
+
+  setAutoRefreshEnabled(enabled) {
+    try {
+      localStorage.setItem(STORAGE_KEYS.AUTO_REFRESH, String(Boolean(enabled)));
+    } catch (e) {
+      // ignore storage errors
+    }
+  }
+
+  setAutoRefreshInterval(intervalMs) {
+    const n = Number(intervalMs);
+    if (!Number.isFinite(n)) return;
+    try {
+      localStorage.setItem(STORAGE_KEYS.AUTO_REFRESH_INTERVAL, String(n));
+    } catch (e) {
+      // ignore storage errors
+    }
   }
 
   // Test connection to device
