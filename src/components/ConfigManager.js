@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Card, Button, Upload, message, Alert, Typography, Row, Col, Divider, Tag, Space, Modal } from 'antd';
 import { 
   DownloadOutlined, 
-  UploadOutlined, 
+  InboxOutlined,
   FileTextOutlined, 
   CheckCircleOutlined,
   ExclamationCircleOutlined,
@@ -12,6 +12,7 @@ import {
 import ioboxAPI from '../services/ioboxApi';
 
 const { Title, Text } = Typography;
+const { Dragger } = Upload;
 
 const ConfigManager = () => {
   const [loading, setLoading] = useState(false);
@@ -334,23 +335,27 @@ const ConfigManager = () => {
           <Col xs={24} md={8}>
             <Card size="small" title="Import Configuration">
               <Text type="secondary" style={{ display: 'block', marginBottom: '16px' }}>
-                Import a configuration file to apply logic rules only. Network settings will be ignored.
+                Import a configuration file by clicking or dragging a JSON file into the area below.
               </Text>
               
-              <Upload
+              <Dragger
                 accept=".json"
                 beforeUpload={handleImportConfig}
                 showUploadList={false}
                 disabled={importing}
+                multiple={false}
+                style={{ padding: '12px' }}
               >
-                <Button 
-                  icon={<UploadOutlined />}
-                  loading={importing}
-                  block
-                >
-                  {importing ? 'Importing...' : 'Select Configuration File'}
-                </Button>
-              </Upload>
+                <p className="ant-upload-drag-icon" style={{ marginBottom: 8 }}>
+                  <InboxOutlined style={{ color: '#1890ff' }} />
+                </p>
+                <p className="ant-upload-text" style={{ marginBottom: 8 }}>
+                  {importing ? 'Importing...' : 'Click or drag configuration file to this area'}
+                </p>
+                <p className="ant-upload-hint" style={{ marginBottom: 0 }}>
+                  Only JSON files are supported. Import applies logic rules only; network settings are ignored.
+                </p>
+              </Dragger>
             </Card>
           </Col>
 

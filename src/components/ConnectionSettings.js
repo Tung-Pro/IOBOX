@@ -116,7 +116,13 @@ const ConnectionSettings = ({ onClose, onIPChange, currentIP }) => {
       maskClosable={false}
       destroyOnClose
       footer={null}
-      width={500}
+      centered
+      width={560}
+      styles={{
+        body: {
+          paddingTop: 12,
+        },
+      }}
     >
       <Form layout="vertical">
         <Form.Item
@@ -142,8 +148,9 @@ const ConnectionSettings = ({ onClose, onIPChange, currentIP }) => {
           />
         )}
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8, marginBottom: 16 }}>
           <Button
+            block
             icon={<SafetyCertificateOutlined />}
             onClick={handleOpenInBrowser}
             disabled={!isInputValid}
@@ -151,6 +158,7 @@ const ConnectionSettings = ({ onClose, onIPChange, currentIP }) => {
             Trust Certificate
           </Button>
           <Button
+            block
             onClick={handleTest}
             disabled={isTesting || !isInputValid}
             loading={isTesting}
@@ -158,6 +166,7 @@ const ConnectionSettings = ({ onClose, onIPChange, currentIP }) => {
             Test Connection
           </Button>
           <Button
+            block
             type="primary"
             icon={<CheckOutlined />}
             onClick={handleSave}
@@ -174,7 +183,8 @@ const ConnectionSettings = ({ onClose, onIPChange, currentIP }) => {
           border: '1px solid #e9ecef', 
           borderRadius: 4,
           fontSize: 13,
-          marginBottom: 12
+          marginBottom: 12,
+          textAlign: 'left'
         }}>
           <strong style={{ color: '#495057' }}>Troubleshooting Tips:</strong>
           <ul style={{ margin: '10px 0 0 20px', color: '#6c757d', lineHeight: 1.6 }}>
@@ -184,13 +194,21 @@ const ConnectionSettings = ({ onClose, onIPChange, currentIP }) => {
             <li>Use the "Trust Certificate" button above to open the API endpoint in browser and accept the certificate</li>
             <li>Accept self-signed SSL certificates if prompted</li>
           </ul>
+          <div style={{ marginTop: 12, display: 'flex', justifyContent: 'center' }}>
+            <img
+              src="/panel_privacy.svg"
+              alt="IOBOX HTTPS certificate trust guide"
+              style={{ maxWidth: '100%', height: 'auto', display: 'block' }}
+            />
+          </div>
         </div>
 
         <div style={{ 
           padding: 12, 
           background: '#f0f7ff', 
           border: '1px solid #d6e9ff', 
-          borderRadius: 6
+          borderRadius: 6,
+          textAlign: 'left'
         }}>
           <div style={{ 
             marginBottom: 8, 
