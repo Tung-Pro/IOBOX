@@ -169,6 +169,16 @@ const LogicConfig = () => {
     setLogicData(updatedRules);
   };
 
+  const handleEnableAllRules = () => {
+    if (!Array.isArray(logicData)) return;
+    setLogicData(logicData.map(rule => ({ ...rule, enabled: true })));
+  };
+
+  const handleDisableAllRules = () => {
+    if (!Array.isArray(logicData)) return;
+    setLogicData(logicData.map(rule => ({ ...rule, enabled: false })));
+  };
+
   const getInputTypeOptions = () => [
     { value: 'DI', label: 'Digital Input (DI)' },
     { value: 'AI', label: 'Analog Input (AI)' },
@@ -417,6 +427,8 @@ const LogicConfig = () => {
           </div>
         </div>
         <div className='row' style={{ gap: 10 }}>
+          <Button onClick={handleEnableAllRules} disabled={!logicData || loading || saving} icon={<CheckOutlined />}>Enable All</Button>
+          <Button danger onClick={handleDisableAllRules} disabled={!logicData || loading || saving} icon={<CloseOutlined />}>Disable All</Button>
           <Button onClick={loadLogicConfig} disabled={loading} icon={<ReloadOutlined />}> {loading ? 'Loading...' : 'Refresh'} </Button>
           <Button type="primary" onClick={handleSaveLogic} disabled={saving || !logicData} icon={<SaveOutlined />}> {saving ? 'Saving...' : 'Save Logic'} </Button>
         </div>
