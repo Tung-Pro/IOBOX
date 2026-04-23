@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Button, Alert, Select, Spin, Card, Input, InputNumber } from 'antd';
+import { Button, Alert, Select, Spin, Card, Input, InputNumber, Switch } from 'antd';
 import { ThunderboltOutlined, ReloadOutlined, SaveOutlined, PlusOutlined, DeleteOutlined, CheckOutlined, CloseOutlined } from '@ant-design/icons';
 import ioboxAPI from '../services/ioboxApi';
 
@@ -57,6 +57,8 @@ const LogicConfig = () => {
           output: out,
           enabled: existing ? existing.enabled !== false : true,
           delay: existing && existing.delay !== undefined ? Number(existing.delay) : 0,
+          enablePulseMode: existing ? Boolean(existing.enablePulseMode) : false,
+          pulseDuration: existing && existing.pulseDuration !== undefined ? Number(existing.pulseDuration) : 1,
           analogSettings,
           conditions: (existing && Array.isArray(existing.conditions) && existing.conditions.length > 0)
             ? existing.conditions.slice(0, 5)
@@ -100,6 +102,8 @@ const LogicConfig = () => {
         return {
           ...rule,
           delay: rule.delay !== undefined ? Number(rule.delay) || 0 : 0,
+          enablePulseMode: Boolean(rule.enablePulseMode),
+          pulseDuration: rule.pulseDuration !== undefined ? Number(rule.pulseDuration) || 1 : 1,
           analogSettings
         };
       });
@@ -129,6 +133,11 @@ const LogicConfig = () => {
         const delay = Number(rule.delay);
         if (!Number.isFinite(delay) || delay < 0) {
           throw new Error(`Rule ${idx + 1}: Delay must be a valid number >= 0`);
+        }
+
+        const pulseDuration = Number(rule.pulseDuration);
+        if (!Number.isFinite(pulseDuration) || pulseDuration <= 0) {
+          throw new Error(`Rule ${idx + 1}: Pulse duration must be a valid number > 0`);
         }
       }
       await ioboxAPI.configureLogic(rules);
@@ -318,6 +327,49 @@ const LogicConfig = () => {
       </div>
 
       <div style={{ marginBottom: '15px' }}>
+        <label style={{ fontSize: '12px', color: '#6c757d', marginBottom: '5px', display: 'block' }}>Pulse Mode</label>
+        <div className="row-between" style={{ gap: 12, alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Switch
+              checked={Boolean(rule.enablePulseMode)}
+              onChange={(checked) => {
+                const updatedRules = [...logicData];
+                updatedRules[ruleIndex].enablePulseMode = checked;
+                // keep a sane default if user just enabled pulse mode
+                if (checked && (!updatedRules[ruleIndex].pulseDuration || Number(updatedRules[ruleIndex].pulseDuration) <= 0)) {
+                  updatedRules[ruleIndex].pulseDuration = 1;
+                }
+                setLogicData(updatedRules);
+              }}
+            />
+            <span style={{ color: '#374151' }}>
+              {rule.enablePulseMode ? 'Enabled (pulse on 0 → 1)' : 'Disabled (normal output)'}
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 12, color: '#6c757d' }}>Duration (s)</span>
+            <InputNumber
+              size="small"
+              min={0.1}
+              step={0.1}
+              value={rule.pulseDuration !== undefined ? rule.pulseDuration : 1}
+              disabled={!rule.enablePulseMode}
+              onChange={(val) => {
+                const updatedRules = [...logicData];
+                updatedRules[ruleIndex].pulseDuration = Number(val) || 1;
+                setLogicData(updatedRules);
+              }}
+              style={{ width: 110 }}
+            />
+          </div>
+        </div>
+        <small style={{ color: '#6c757d' }}>
+          When enabled, if the final logic result changes from 0 → 1, the output turns ON for <code>pulseDuration</code> seconds then turns OFF.
+        </small>
+      </div>
+
+      <div style={{ marginBottom: '15px' }}>
         <strong>Analog Settings (per AI channel)</strong>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px', marginTop: '10px' }}>
           {[0, 1].map((aiIndex) => {
@@ -469,6 +521,7 @@ const LogicConfig = () => {
                 <li><strong>Logic Expression:</strong> Use C1, C2, etc. for conditions. Operators: && (AND), || (OR), ! (NOT)</li>
                 <li><strong>Timer:</strong> Delay in seconds before condition is evaluated</li>
                 <li><strong>Output Delay:</strong> Delay in seconds before output turns ON. Output will only turn ON if logic result is still 1 after the delay period</li>
+                <li><strong>Pulse Mode:</strong> If enabled and logic result changes from 0 → 1, the output will pulse ON for <code>pulseDuration</code> seconds then turn OFF</li>
                 <li><strong>Analog Setting Type:</strong> Accepted values are <code>in_range</code> and <code>out_range</code>. The app also normalizes common variants like <code>inrange</code>/<code>outrange</code>.</li>
                 <li><strong>Limits:</strong> Max 5 conditions per rule; 4 fixed rules (DO1–DO4)</li>
                 <li><strong>Example:</strong> "C1 && C2" means both condition 1 AND condition 2 must be true</li>
