@@ -33,6 +33,13 @@ const ConfigManager = () => {
     type: 'in_range'
   });
 
+  const createDefaultCondition = () => ({
+    inputType: 'DI',
+    inputIndex: 1,
+    trigger: 'level',
+    timer: 0
+  });
+
   // Thu thập tất cả cấu hình từ thiết bị
   const collectAllConfig = async () => {
     setLoading(true);
@@ -181,7 +188,7 @@ const ConfigManager = () => {
     timer: Number.isFinite(Number(condition.timer)) ? Number(condition.timer) : 0
   });
 
-  const normalizeRuleForDiff = (rule = {}, index = 0) => {
+  const normalizeRuleForApply = (rule = {}, defaultOutput) => {
     const rawAnalog = Array.isArray(rule.analogSettings) && rule.analogSettings.length > 0
       ? rule.analogSettings
       : (rule.analogSetting ? [rule.analogSetting] : []);
@@ -199,17 +206,87 @@ const ConfigManager = () => {
       analogSettings.push(createDefaultAnalog());
     }
 
-    const conditions = Array.isArray(rule.conditions)
-      ? rule.conditions.map(normalizeCondition)
-      : [];
+    const rawConditions = Array.isArray(rule.conditions) && rule.conditions.length > 0
+      ? rule.conditions
+      : [createDefaultCondition()];
+
+    const conditions = rawConditions
+      .slice(0, 5)
+      .map(normalizeCondition);
 
     return {
-      output: getRuleIdentity(rule, index),
+      output: String(rule.output || defaultOutput),
       enabled: rule.enabled !== false,
       delay: Number.isFinite(Number(rule.delay)) ? Number(rule.delay) : 0,
-      logic: String(rule.logic || ''),
+      enablePulseMode: Boolean(rule.enablePulseMode),
+      pulseDuration: Number.isFinite(Number(rule.pulseDuration)) ? Number(rule.pulseDuration) : 1,
       analogSettings,
-      conditions
+      conditions,
+      logic: String(rule.logic || 'C1')
+    };
+  };
+
+  const normalizeRulesForApply = (rules = []) => {
+    const fixedOutputs = ['DO1', 'DO2', 'DO3', 'DO4'];
+
+    return fixedOutputs.map((output) => {
+      const existing = rules.find((rule) => String(rule?.output || '').trim() === output);
+      return normalizeRuleForApply(existing || { output }, output);
+    });
+  };
+
+  const validateRulesForApply = (rules = []) => {
+    rules.forEach((rule, index) => {
+      if (!rule.logic || !String(rule.logic).trim()) {
+        throw new Error(`${rule.output || `Rule ${index + 1}`}: Logic expression cannot be empty`);
+      }
+
+      rule.analogSettings.forEach((analog, aiIndex) => {
+        const min = Number(analog.min);
+        const max = Number(analog.max);
+        const type = normalizeAnalogType(analog.type);
+
+        if (!Number.isFinite(min) || !Number.isFinite(max)) {
+          throw new Error(`${rule.output || `Rule ${index + 1}`} (AI${aiIndex + 1}): Min/Max must be valid numbers`);
+        }
+
+        if (min > max) {
+          throw new Error(`${rule.output || `Rule ${index + 1}`} (AI${aiIndex + 1}): Min cannot be greater than Max`);
+        }
+
+        if (type !== 'in_range' && type !== 'out_range') {
+          throw new Error(`${rule.output || `Rule ${index + 1}`} (AI${aiIndex + 1}): Type must be in_range or out_range`);
+        }
+      });
+
+      const delay = Number(rule.delay);
+      if (!Number.isFinite(delay) || delay < 0) {
+        throw new Error(`${rule.output || `Rule ${index + 1}`}: Delay must be a valid number >= 0`);
+      }
+
+      const pulseDuration = Number(rule.pulseDuration);
+      if (!Number.isFinite(pulseDuration) || pulseDuration <= 0) {
+        throw new Error(`${rule.output || `Rule ${index + 1}`}: Pulse duration must be a valid number > 0`);
+      }
+
+      if (!Array.isArray(rule.conditions) || rule.conditions.length === 0 || rule.conditions.length > 5) {
+        throw new Error(`${rule.output || `Rule ${index + 1}`}: Must have from 1 to 5 conditions`);
+      }
+    });
+  };
+
+  const normalizeRuleForDiff = (rule = {}, index = 0) => {
+    const normalized = normalizeRuleForApply(rule, getRuleIdentity(rule, index));
+
+    return {
+      output: normalized.output,
+      enabled: normalized.enabled,
+      delay: normalized.delay,
+      enablePulseMode: normalized.enablePulseMode,
+      pulseDuration: normalized.pulseDuration,
+      logic: normalized.logic,
+      analogSettings: normalized.analogSettings,
+      conditions: normalized.conditions
     };
   };
 
@@ -228,6 +305,14 @@ const ConfigManager = () => {
 
     if (before.delay !== after.delay) {
       changes.push(`delay: ${before.delay}s -> ${after.delay}s`);
+    }
+
+    if (before.enablePulseMode !== after.enablePulseMode) {
+      changes.push(`pulse mode: ${before.enablePulseMode ? 'enabled' : 'disabled'} -> ${after.enablePulseMode ? 'enabled' : 'disabled'}`);
+    }
+
+    if (before.pulseDuration !== after.pulseDuration) {
+      changes.push(`pulseDuration: ${before.pulseDuration}s -> ${after.pulseDuration}s`);
     }
 
     for (let i = 0; i < 2; i += 1) {
@@ -326,8 +411,11 @@ const ConfigManager = () => {
   const handleApplyConfig = async (rules) => {
     setImporting(true);
     try {
-      await ioboxAPI.configureLogic(rules);
-      message.success(`Logic configuration applied successfully (${rules.length} rule(s)).`);
+      const normalizedRules = normalizeRulesForApply(rules);
+      validateRulesForApply(normalizedRules);
+
+      await ioboxAPI.configureLogic(normalizedRules);
+      message.success(`Logic configuration applied successfully (${normalizedRules.length} rule(s)).`);
     } catch (error) {
       message.error(`Apply logic configuration failed: ${error.message}`);
     } finally {
@@ -341,6 +429,8 @@ const ConfigManager = () => {
     try {
       const config = await handleFileRead(file);
       const importedRules = extractLogicRules(config);
+      const normalizedImportedRules = normalizeRulesForApply(importedRules);
+      validateRulesForApply(normalizedImportedRules);
 
       let currentRules = [];
       try {
@@ -350,8 +440,8 @@ const ConfigManager = () => {
         currentRules = [];
       }
 
-      const summary = summarizeRuleChanges(currentRules, importedRules);
-      const detailedChanges = getDetailedRuleChanges(currentRules, importedRules);
+      const summary = summarizeRuleChanges(currentRules, normalizedImportedRules);
+      const detailedChanges = getDetailedRuleChanges(currentRules, normalizedImportedRules);
       const addedCount = detailedChanges.filter((x) => x.type === 'added').length;
       const modifiedCount = detailedChanges.filter((x) => x.type === 'modified').length;
       const removedCount = detailedChanges.filter((x) => x.type === 'removed').length;
@@ -519,7 +609,7 @@ const ConfigManager = () => {
       >
         <Alert
           message="Configuration Export/Import"
-          description="Export your current device configuration to a file, or import only logic rules from a JSON file with a confirmation popup before apply."
+          description="Export your current device configuration to a file, or import logic rules (fixed DO1-DO4) from a JSON file with a confirmation popup before apply."
           type="info"
           showIcon
           style={{ marginBottom: '16px' }}
@@ -554,7 +644,7 @@ const ConfigManager = () => {
           <Col xs={24} md={8}>
             <Card size="small" title="Import Configuration">
               <Text type="secondary" style={{ display: 'block', marginBottom: '16px' }}>
-                Import logic configuration by clicking or dragging a JSON file into the area below.
+                Import logic configuration by clicking or dragging a JSON file into the area below. Rules are normalized to DO1-DO4 and validated before apply.
               </Text>
               
               <Dragger
@@ -605,6 +695,7 @@ const ConfigManager = () => {
             <ul style={{ margin: 0, paddingLeft: '20px' }}>
               <li>Export includes all current device settings and configurations</li>
               <li>Import accepts only logic rules; network settings are ignored</li>
+              <li>Imported rules are normalized to 4 fixed outputs (DO1-DO4), with pulse mode and analog settings validation</li>
               <li>A confirmation popup will appear before applying imported logic rules</li>
               <li>Consider exporting first as a backup before importing</li>
               <li>To change network settings, configure them separately in Network settings</li>
