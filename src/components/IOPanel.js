@@ -259,6 +259,8 @@ const IOPanel = () => {
                 }}
                 style={{ width: 90 }}
                 options={[
+                  { value: 500, label: '0.5s' },
+                  { value: 1000, label: '1s' },
                   { value: 1500, label: '1.5s' },
                   { value: 2000, label: '2s' },
                   { value: 5000, label: '5s' },
